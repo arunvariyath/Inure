@@ -10,10 +10,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Remove upstream remote
-        run: git remote rm upstream                     
+        uses: actions/checkout@v2              
         
       - name: Set upstream remote
         run: git remote add upstream https://github.com/Hamza417/Inure.git
