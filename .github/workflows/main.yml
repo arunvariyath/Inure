@@ -10,7 +10,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2              
+        uses: actions/checkout@v2     
+        
+      - name: Set User Name
+        run: git config --global user.name "Arun R Variyath"
+        
+      - name: Set Mail Id
+        run: git config --global user.email "32630496+arunvariyath@users.noreply.github.com"
         
       - name: Set upstream remote
         run: git remote add upstream https://github.com/Hamza417/Inure.git
