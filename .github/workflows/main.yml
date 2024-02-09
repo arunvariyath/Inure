@@ -1,4 +1,4 @@
-name: Fork Sync
+name: Fork Sync V2
 
 on:
   schedule:
