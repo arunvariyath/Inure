@@ -1,8 +1,11 @@
-name: Fork Sync V2
+name: Fork Sync V3
 
 on:
   schedule:
     - cron: '* * * * *' # This runs the job every minute
+permissions:
+  contents: read
+  pages: write
 
 jobs:
   sync:
