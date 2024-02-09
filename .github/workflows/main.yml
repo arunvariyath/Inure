@@ -1,0 +1,28 @@
+name: Fork Sync
+
+on:
+  schedule:
+    - cron: '* * * * *' # This runs the job every hour
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Remove upstream remote
+        run: git remote rm upstream                     
+        
+      - name: Set upstream remote
+        run: git remote add upstream https://github.com/Hamza417/Inure.git
+
+      - name: Fetch upstream changes
+        run: git fetch upstream
+
+      - name: Merge upstream changes
+        run: git merge upstream/master --no-edit
+
+      - name: Push changes to fork
+        run: git push origin master
