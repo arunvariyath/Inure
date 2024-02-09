@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set upstream remote
-        run: git remote add upstream git@github.com:Hamza417/Inure.git
+        run: git remote add upstream https://github.com/Hamza417/Inure.git
 
       - name: Fetch upstream changes
         run: git fetch upstream
