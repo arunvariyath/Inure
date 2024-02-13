@@ -142,7 +142,8 @@ public class Term extends BaseActivity implements UpdateCallback,
     // Available on API 12 and later
     private static final int WIFI_MODE_FULL_HIGH_PERF = 3;
     
-    private boolean backKeyPressed;
+    private boolean wilLResume = false;
+    private boolean backKeyPressed = false;
     
     private static final String ACTION_CLOSE = "inure.terminal.close";
     private static final String ACTION_PATH_BROADCAST = "inure.terminal.broadcast.APPEND_TO_PATH";
@@ -164,7 +165,7 @@ public class Term extends BaseActivity implements UpdateCallback,
                 settings.setAppendPath(path);
             }
             pendingPathBroadcasts--;
-    
+            
             if (pendingPathBroadcasts <= 0 && termService != null) {
                 populateViewFlipper();
                 populateWindowList();
@@ -199,7 +200,11 @@ public class Term extends BaseActivity implements UpdateCallback,
     private void populateViewFlipper() {
         if (termService != null) {
             termSessions = termService.getSessions();
-            onResumeSelectWindow = termService.getWindowId();
+            
+            if (!wilLResume) {
+                onResumeSelectWindow = termService.getWindowId();
+                wilLResume = false;
+            }
             
             if (termSessions.size() == 0) {
                 try {
@@ -263,22 +268,22 @@ public class Term extends BaseActivity implements UpdateCallback,
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
         getWindow().setStatusBarColor(ThemeManager.INSTANCE.getTheme().getViewGroupTheme().getBackground());
-    
+        
         fullVersionCheck();
-    
+        
         // Request notification permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
             }
         }
-    
+        
         privateAlias = new ComponentName(this, RemoteInterface.PRIVACT_ACTIVITY_ALIAS);
-    
+        
         if (savedInstanceState == null) {
             onNewIntent(getIntent());
         }
-    
+        
         final SharedPreferences mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         settings = new TermSettings(getResources(), mPrefs);
         mPrefs.registerOnSharedPreferenceChangeListener(this);
@@ -322,7 +327,15 @@ public class Term extends BaseActivity implements UpdateCallback,
         
         content.setBackgroundColor(ThemeManager.INSTANCE.getTheme().getViewGroupTheme().getBackground());
         
-        add.setOnClickListener(v -> doCreateNewWindow());
+        add.setOnClickListener(v -> {
+            doCreateNewWindow(false);
+        });
+        
+        add.setOnLongClickListener(v -> {
+            doCreateNewWindow(true);
+            return false;
+        });
+        
         close.setOnClickListener(v -> confirmCloseWindow());
         options.setOnClickListener(v -> {
             TerminalMainMenu terminalMainMenu = TerminalMainMenu.Companion.newInstance(wakeLock.isHeld(), wifiLock.isHeld());
@@ -380,7 +393,7 @@ public class Term extends BaseActivity implements UpdateCallback,
         }
         
         wifiLock = wm.createWifiLock(wifiLockMode, TermDebug.LOG_TAG);
-        mHaveFullHwKeyboard = checkHaveFullHwKeyboard(getResources().getConfiguration());
+        haveFullHwKeyboard = checkHaveFullHwKeyboard(getResources().getConfiguration());
         
         updatePrefs();
         alreadyStarted = true;
@@ -399,6 +412,7 @@ public class Term extends BaseActivity implements UpdateCallback,
             }
         };
     }
+    
     /**
      * Should we use keyboard shortcuts?
      */
@@ -413,7 +427,7 @@ public class Term extends BaseActivity implements UpdateCallback,
         pathReceiver = null;
         
         super.onDestroy();
-    
+        
         if (stopServiceOnFinish) {
             stopService(TSIntent);
         }
@@ -428,7 +442,7 @@ public class Term extends BaseActivity implements UpdateCallback,
         }
     }
     
-    private boolean mHaveFullHwKeyboard = false;
+    private boolean haveFullHwKeyboard = false;
     
     private class EmulatorViewGestureListener extends SimpleOnGestureListener {
         private final EmulatorView view;
@@ -544,23 +558,23 @@ public class Term extends BaseActivity implements UpdateCallback,
     
     private void updatePrefs() {
         useKeyboardShortcuts = TerminalPreferences.INSTANCE.getKeyboardShortcutState();
-    
+        
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
-    
+        
         viewFlipper.updatePrefs(settings);
-    
+        
         for (View v : viewFlipper) {
             ((EmulatorView) v).setDensity(metrics);
             ((TermView) v).updatePrefs(settings);
         }
-    
+        
         if (termSessions != null) {
             for (TermSession session : termSessions) {
                 ((GenericTermSession) session).updatePrefs(settings);
             }
         }
-    
+        
         int orientation = settings.getScreenOrientation();
         int o = 0;
         if (orientation == 0) {
@@ -573,9 +587,11 @@ public class Term extends BaseActivity implements UpdateCallback,
             } else {
                 // Shouldn't have happened.
             }
-    
+        
         setRequestedOrientation(o);
-    }    /**
+    }
+    
+    /**
      * Intercepts keys before the view/terminal gets it.
      */
     private final View.OnKeyListener keyListener = new View.OnKeyListener() {
@@ -605,16 +621,16 @@ public class Term extends BaseActivity implements UpdateCallback,
                 
                 return true;
             } else if (keyCode == KeycodeConstants.KEYCODE_N && isCtrlPressed && isShiftPressed) {
-                doCreateNewWindow();
+                doCreateNewWindow(true);
                 
                 return true;
             } else if (keyCode == KeycodeConstants.KEYCODE_V && isCtrlPressed && isShiftPressed) {
                 doPaste();
-    
+                
                 return true;
             } else if (keyCode == KeycodeConstants.KEYCODE_C && isCtrlPressed && isShiftPressed) {
                 doCopyAll();
-    
+                
                 return true;
             } else {
                 return false;
@@ -640,7 +656,7 @@ public class Term extends BaseActivity implements UpdateCallback,
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
         TermView emulatorView = new TermView(this, session, metrics);
-    
+        
         emulatorView.setExtGestureListener(new EmulatorViewGestureListener(emulatorView));
         emulatorView.setOnKeyListener(keyListener);
         registerForContextMenu(emulatorView);
@@ -673,57 +689,75 @@ public class Term extends BaseActivity implements UpdateCallback,
     @Override
     protected void onStop() {
         /*
-         * To protect shared transition animation state
-         * TODO - Check this later to see if this method is good enough
+         * To protect shared transition animation state, we need to save the state of the activity
          */
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !isFinishing()) {
             new Instrumentation().callActivityOnSaveInstanceState(this, new Bundle());
         }
-    
+        
         super.onStop();
-    
+        
         onResumeSelectWindow = viewFlipper.getDisplayedChild();
+        termService.setWindowId(onResumeSelectWindow);
+        wilLResume = true;
+        
         viewFlipper.onPause();
         if (termSessions != null) {
             termSessions.removeCallback(this);
-    
+            
             if (adapterWindows != null) {
                 termSessions.removeCallback(adapterWindows);
                 termSessions.removeTitleChangedListener(adapterWindows);
                 viewFlipper.removeCallback(adapterWindows);
             }
         }
-    
+        
         viewFlipper.removeAllViews();
         unbindService(TSConnection);
         ThemeManager.INSTANCE.removeListener(this);
     }
     
-    private void doCreateNewWindow() {
+    private void doCreateNewWindow(boolean withTitle) {
         if (termSessions == null) {
             Log.w(TermDebug.LOG_TAG, "Couldn't create new window because mTermSessions == null");
             return;
         }
-    
-        TerminalSessionTitle terminalSessionTitle = TerminalSessionTitle.Companion.newInstance();
-    
-        terminalSessionTitle.setTerminalSessionTitleCallbacks(title -> {
+        
+        if (withTitle) {
+            TerminalSessionTitle terminalSessionTitle = TerminalSessionTitle.Companion.newInstance();
+            
+            terminalSessionTitle.setTerminalSessionTitleCallbacks(title -> {
+                try {
+                    TermSession session = createTermSession(title);
+                    
+                    termSessions.add(session);
+                    
+                    TermView view = createEmulatorView(session);
+                    view.updatePrefs(settings);
+                    
+                    viewFlipper.addView(view);
+                    viewFlipper.setDisplayedChild(viewFlipper.getChildCount() - 1);
+                } catch (IOException e) {
+                    Toast.makeText(Term.this, "Failed to create a session", Toast.LENGTH_SHORT).show();
+                }
+            });
+            
+            terminalSessionTitle.show(getSupportFragmentManager(), "TerminalSessionTitle");
+        } else {
             try {
-                TermSession session = createTermSession(title);
-    
+                TermSession session = createTermSession(null);
                 termSessions.add(session);
-    
+                
                 TermView view = createEmulatorView(session);
                 view.updatePrefs(settings);
-    
+                
                 viewFlipper.addView(view);
                 viewFlipper.setDisplayedChild(viewFlipper.getChildCount() - 1);
             } catch (IOException e) {
                 Toast.makeText(Term.this, "Failed to create a session", Toast.LENGTH_SHORT).show();
             }
-        });
-    
-        terminalSessionTitle.show(getSupportFragmentManager(), "TerminalSessionTitle");
+            
+        }
     }
     
     @SuppressLint ("UnsafeIntentLaunch")
@@ -744,7 +778,7 @@ public class Term extends BaseActivity implements UpdateCallback,
         if (TextUtils.isEmpty(action) || !privateAlias.equals(intent.getComponent())) {
             return;
         }
-    
+        
         // huge number simply opens new window
         // TODO: add a way to restrict max number of windows per caller (possibly via reusing BoundSession)
         switch (action) {
@@ -849,7 +883,7 @@ public class Term extends BaseActivity implements UpdateCallback,
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         
-        mHaveFullHwKeyboard = checkHaveFullHwKeyboard(newConfig);
+        haveFullHwKeyboard = checkHaveFullHwKeyboard(newConfig);
         
         EmulatorView v = (EmulatorView) viewFlipper.getCurrentView();
         if (v != null) {
@@ -883,9 +917,9 @@ public class Term extends BaseActivity implements UpdateCallback,
         ActivityCompat.invalidateOptionsMenu(this);
     }
     
-    private boolean checkHaveFullHwKeyboard(Configuration c) {
-        return (c.keyboard == Configuration.KEYBOARD_QWERTY) &&
-                (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO);
+    private boolean checkHaveFullHwKeyboard(Configuration configuration) {
+        return (configuration.keyboard == Configuration.KEYBOARD_QWERTY) &&
+                (configuration.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO);
     }
     
     @Override
@@ -967,7 +1001,7 @@ public class Term extends BaseActivity implements UpdateCallback,
                     // Switch windows after session list is in sync, not here
                     onResumeSelectWindow = position;
                 } else if (position == -1) {
-                    doCreateNewWindow();
+                    doCreateNewWindow(true);
                     onResumeSelectWindow = termSessions.size() - 1;
                 }
             } else {
@@ -1002,7 +1036,7 @@ public class Term extends BaseActivity implements UpdateCallback,
     private void doUIToggle(int x, int y, int width, int height) {
         switch (actionBarMode) {
             case TermSettings.ACTION_BAR_MODE_NONE:
-                if (AndroidCompat.SDK >= 11 && (mHaveFullHwKeyboard || y < height / 2)) {
+                if (AndroidCompat.SDK >= 11 && (haveFullHwKeyboard || y < height / 2)) {
                     openOptionsMenu();
                     return;
                 } else {
@@ -1010,12 +1044,12 @@ public class Term extends BaseActivity implements UpdateCallback,
                 }
                 break;
             case TermSettings.ACTION_BAR_MODE_ALWAYS_VISIBLE:
-                if (!mHaveFullHwKeyboard) {
+                if (!haveFullHwKeyboard) {
                     doToggleSoftKeyboard();
                 }
                 break;
             case TermSettings.ACTION_BAR_MODE_HIDES:
-                if (mHaveFullHwKeyboard || y < height / 2) {
+                if (haveFullHwKeyboard || y < height / 2) {
                     doToggleActionBar();
                     return;
                 } else {
@@ -1082,8 +1116,6 @@ public class Term extends BaseActivity implements UpdateCallback,
         imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
         
     }
-    
-
     
     /**
      * Send a URL up to Android to be handled by a browser.

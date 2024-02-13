@@ -209,7 +209,7 @@ class Installer : ScopedFragment(), InstallerCallbacks {
                 }
 
                 install.setOnClickListener {
-                    if (DevelopmentPreferences.get(DevelopmentPreferences.isUserSelectionEnabledInInstaller)) {
+                    if (ConfigurationPreferences.isShowUsersList()) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                             childFragmentManager.showUsers().setUsersCallback(object : Users.Companion.UsersCallback {
                                 override fun onUserSelected(user: User) {
@@ -314,12 +314,20 @@ class Installer : ScopedFragment(), InstallerCallbacks {
 
         installerViewModel.getWarning().observe(viewLifecycleOwner) {
             if (it.contains("INSTALL_FAILED_DEPRECATED_SDK_VERSION")) {
-                if (ConfigurationPreferences.isUsingRoot()) {
-                    parentFragmentManager.showInstallAnyway(it).setInstallAnywayCallback {
-                        installerViewModel.installAnyway()
+                when {
+                    ConfigurationPreferences.isUsingRoot() -> {
+                        parentFragmentManager.showInstallAnyway(it).setInstallAnywayCallback {
+                            installerViewModel.installAnyway()
+                        }
                     }
-                } else {
-                    showWarning(it)
+                    ConfigurationPreferences.isUsingShizuku() -> {
+                        parentFragmentManager.showInstallAnyway(it).setInstallAnywayCallback {
+                            installerViewModel.installAnywayShizuku()
+                        }
+                    }
+                    else -> {
+                        showWarning(it)
+                    }
                 }
             } else {
                 showWarning(it)

@@ -3,6 +3,7 @@ package app.simple.inure.viewmodels.panels
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
@@ -85,9 +86,6 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
                 }
             }
 
-            // Sort the bloat list
-            bloats.getSortedList()
-
             // Apply filters
             bloats = bloats.applyListFilter()
             bloats = bloats.applyMethodsFilter()
@@ -95,6 +93,9 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
 
             // Remove duplicates
             bloats = bloats.distinctBy { it.id } as ArrayList<Bloat>
+
+            // Sort the bloat list
+            bloats.getSortedList()
 
             bloatList.postValue(bloats)
         }
@@ -309,29 +310,25 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
     }
 
     private fun ArrayList<Bloat>.applyStateFilter(): ArrayList<Bloat> {
-        val state = DebloatPreferences.getRemovalType()
+        val state = DebloatPreferences.getState()
         val filteredList = ArrayList<Bloat>()
 
         parallelStream().forEach {
             if (FlagUtils.isFlagSet(state, DebloatSortConstants.DISABLED)) {
-                if (it.packageInfo.applicationInfo.enabled.not()) {
-                    if (it.packageInfo.isInstalled()) {
-                        synchronized(filteredList) {
-                            if (filteredList.contains(it).invert()) {
-                                filteredList.add(it)
-                            }
+                if (it.packageInfo.applicationInfo.enabled.not() && it.packageInfo.isInstalled()) {
+                    synchronized(filteredList) {
+                        if (filteredList.contains(it).invert()) {
+                            filteredList.add(it)
                         }
                     }
                 }
             }
 
             if (FlagUtils.isFlagSet(state, DebloatSortConstants.ENABLED)) {
-                if (it.packageInfo.applicationInfo.enabled) {
-                    if (it.packageInfo.isInstalled()) {
-                        synchronized(filteredList) {
-                            if (filteredList.contains(it).invert()) {
-                                filteredList.add(it)
-                            }
+                if (it.packageInfo.applicationInfo.enabled && it.packageInfo.isInstalled()) {
+                    synchronized(filteredList) {
+                        if (filteredList.contains(it).invert()) {
+                            filteredList.add(it)
                         }
                     }
                 }
@@ -356,7 +353,7 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
         initializeCoreFramework()
     }
 
-    fun startDebloating(method: String) {
+    private fun startDebloating(method: String) {
         val selectedBloats = ArrayList<Bloat>()
         bloatList.value?.forEach {
             if (it.isSelected) {
@@ -364,10 +361,15 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
             }
         }
 
-        if (ConfigurationPreferences.isUsingRoot()) {
-            debloatRoot(selectedBloats, method)
-        } else if (ConfigurationPreferences.isUsingShizuku()) {
-            debloatShizuku(selectedBloats, method)
+        when {
+            ConfigurationPreferences.isUsingRoot() -> {
+                Log.d("DebloatViewModel", "startDebloating: Root")
+                debloatRoot(selectedBloats, method)
+            }
+            ConfigurationPreferences.isUsingShizuku() -> {
+                Log.d("DebloatViewModel", "startDebloating: Shizuku")
+                debloatShizuku(selectedBloats, method)
+            }
         }
     }
 
@@ -402,7 +404,7 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
 
     private fun debloatShizuku(bloats: ArrayList<Bloat>, method: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            val debloatedPackages = mutableSetOf<PackageStateResult>()
+            val debloatedPackages = ArrayList<PackageStateResult>()
             val user = getCurrentUser()
 
             bloats.forEach { bloat ->
@@ -414,42 +416,13 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
                             debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, false))
                         }
                     }
-                }.onSuccess {
-                    debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, true))
-                }.onFailure {
-                    debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, false))
                 }.getOrElse {
                     debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, false))
                 }
             }
+
+            this@DebloatViewModel.debloatedPackages.postValue(debloatedPackages)
         }
-    }
-
-    private fun getCurrentUser(): Int {
-        kotlin.runCatching {
-            var user = 0
-            if (ConfigurationPreferences.isUsingRoot()) {
-                Shell.cmd("am get-current-user").exec().let { result ->
-                    if (result.isSuccess) {
-                        user = result.out.joinToString().toInt()
-                    }
-                }
-            } else if (ConfigurationPreferences.isUsingShizuku()) {
-                kotlin.runCatching {
-                    ShizukuUtils.execInternal(app.simple.inure.shizuku.Shell.Command("am get-current-user"), null)
-                }.onSuccess {
-                    user = it.out.toInt()
-                }.onFailure {
-                    postError(it)
-                }
-            }
-
-            return user
-        }.onFailure {
-            postError(it)
-        }
-
-        return 0
     }
 
     private fun getCommand(method: String, user: Int, appID: String): String {
