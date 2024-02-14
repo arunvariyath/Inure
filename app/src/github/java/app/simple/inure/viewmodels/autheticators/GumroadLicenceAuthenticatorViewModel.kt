@@ -141,7 +141,8 @@ class GumroadLicenceAuthenticatorViewModel(application: Application) : WrappedVi
                 Log.d("GumroadLicenceAuthenticatorViewModel", TrafficStats.getThreadStatsTag().toString())
                 TrafficStats.clearThreadStatsTag()
                 response.close()
-                httpClient.connectionPool().evictAll()
+                httpClient.dispatcher.executorService.shutdown()
+                httpClient.connectionPool.evictAll()
             }.getOrElse {
                 postWarning(it.message.toString())
                 it.printStackTrace()
