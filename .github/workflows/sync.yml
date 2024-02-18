@@ -1,4 +1,4 @@
-name: Sync Upstream
+name: Sync with Fork
 
 env:
   # Required, URL to upstream (fork base)
@@ -19,7 +19,7 @@ env:
   # Optional toggle to spawn time logs (keeps action active) 
   SPAWN_LOGS: "false" # "true" or "false"
 
-# This runs every hour
+# This runs on specific schedule
 on:
   schedule:
     - cron: '0 6 * * *'
