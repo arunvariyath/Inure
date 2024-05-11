@@ -27,13 +27,15 @@ object DevelopmentPreferences {
     const val oldStyleScrollingBehaviorDialog = "is_old_style_scrolling_behavior_dialog_enabled"
     const val useAlternateAudioPlayerInterface = "is_alternate_audio_player_interface_enabled"
     const val showCompleteAppSize = "is_complete_app_size_shown"
-    const val removeStrokeFromChips = "is_stroke_removed_from_chips"
     const val paddingLessPopupMenus = "is_padding_less_popup_menus_enabled"
     const val dividerOnNavigationBar = "is_divider_on_navigation_bar_enabled"
     const val pauseImageLoader = "is_image_loader_paused"
     const val expandHomeHeader = "is_home_header_expanded"
     const val isSwitchFancyDraggable = "is_switch_fancy_draggable"
     const val useColorfulHighlight = "is_colorful_highlight_enabled"
+    const val usePeristyleInterface = "is_felicity_flow_interface_enabled"
+    const val useCorrespondingColorOnHighlight = "is_corresponding_color_on_highlight_enabled"
+    const val USE_BLUR_BETWEEN_PANELS = "is_blur_between_panels_enabled"
 
     val developmentPreferences: List<DevelopmentPreferencesModel> by lazy {
         listOf(
@@ -157,11 +159,6 @@ object DevelopmentPreferences {
                                             showCompleteAppSize,
                                             DevelopmentPreferencesModel.TYPE_BOOLEAN),
 
-                DevelopmentPreferencesModel("Remove Stroke From Chips",
-                                            "Remove stroke from chips in the app's sorting GUI.",
-                                            removeStrokeFromChips,
-                                            DevelopmentPreferencesModel.TYPE_BOOLEAN),
-
                 DevelopmentPreferencesModel("Padding Less Popup Menus",
                                             "Remove padding from popup menus.",
                                             paddingLessPopupMenus,
@@ -185,6 +182,22 @@ object DevelopmentPreferences {
                 DevelopmentPreferencesModel("Use Colorful Highlight",
                                             "Use colorful static backgrounds in the enu containers as well if colorful icons are enabled with static backgrounds.",
                                             useColorfulHighlight,
+                                            DevelopmentPreferencesModel.TYPE_BOOLEAN),
+
+                DevelopmentPreferencesModel("Use Peristyle Interface",
+                                            "Use basic Peristyle Interface in the music panel of the app.",
+                                            usePeristyleInterface,
+                                            DevelopmentPreferencesModel.TYPE_BOOLEAN),
+
+                DevelopmentPreferencesModel("Use Corresponding Color while Highlighting",
+                                            "Use corresponding color on highlight buttons instead of the default accent color in Debloat panel.",
+                                            useCorrespondingColorOnHighlight,
+                                            DevelopmentPreferencesModel.TYPE_BOOLEAN),
+
+                DevelopmentPreferencesModel("Use Blur Between Panels",
+                                            "Use blur effects while switching between panels in the app. It's available in" +
+                                                    " Android 12+ only. Highly unstable, please use it with caution and on your own discretion.",
+                                            USE_BLUR_BETWEEN_PANELS,
                                             DevelopmentPreferencesModel.TYPE_BOOLEAN)
 
                 //                DevelopmentPreferencesModel("Enable Fancy Drag in Switch",

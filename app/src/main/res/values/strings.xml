@@ -687,7 +687,6 @@
     <string name="info_visibility_customization_desc">Customize the information strip of some main apps\' panel lists.</string>
     <string name="group">Group</string>
     <string name="channel">Channel</string>
-    <string name="rate_reminder">You\'ve launched Inure %1$d times since %2$s, would you like to write a review and let me know your experience?</string>
     <string name="create_shortcut">Create Shortcut</string>
     <string name="block">Block</string>
     <string name="unblock">Unblock</string>
@@ -736,4 +735,20 @@
     <string name="enter_license_key">Enter License Key</string>
     <string name="show_user_list">Show Users List</string>
     <string name="show_user_list_desc">Show user selection popup before installing an app.</string>
+    <string name="uninstall_downgrade_desc">Would you like to uninstall the current version before proceeding with installation, all data will be lost?</string>
+    <string name="created_on">Created on %1$s</string>
+    <string name="code_signature">Code Signature</string>
+    <string name="network_signature">Network Signature</string>
+    <string name="website">Website</string>
+    <string name="create_selection_from_tags">Create Selection from Tags</string>
+    <string name="blocked">Blocked</string>
+    <string name="actions">Actions</string>
+    <string name="lock_task_warning">App is pinned and cannot be closed.</string>
+    <string name="accents_on_bottom_menu">Accent Color on Bottom Menu</string>
+    <string name="desc_accent_on_bottom_menu">Use Accent Color as Bottom Menu background.</string>
+    <string name="auto_tag">Auto Tag</string>
+    <string name="create_tags">Create Tags</string>
+    <string name="auto_tag_desc">Automatically create tags for apps based on the available information.</string>
+    <string name="no_cache_found">No Cache Found</string>
+    <string name="no_operations_found">No Operations Found</string>
 </resources>

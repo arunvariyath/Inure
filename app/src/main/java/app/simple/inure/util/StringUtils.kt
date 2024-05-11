@@ -108,15 +108,19 @@ object StringUtils {
      *
      * @return [Spannable]
      */
-    fun Spannable.highlightExtensions(): Spannable {
-        kotlin.runCatching {
-            val spannable: Spannable = SpannableString(this)
-            spannable.setSpan(ForegroundColorSpan(AppearancePreferences.getAccentColor()),
-                              this.lastIndexOf("."),
-                              this.length,
-                              Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            return spannable
-        }.getOrElse {
+    fun String.highlightExtensions(isHighlighted: Boolean): Spannable {
+        if (isHighlighted) {
+            kotlin.runCatching {
+                val spannable: Spannable = SpannableString(this)
+                spannable.setSpan(ForegroundColorSpan(AppearancePreferences.getAccentColor()),
+                                  this.lastIndexOf("."),
+                                  this.length,
+                                  Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                return spannable
+            }.getOrElse {
+                return this.toSpannable()
+            }
+        } else {
             return this.toSpannable()
         }
     }
@@ -180,8 +184,8 @@ object StringUtils {
         }
     }
 
-    fun StringBuilder.appendFlag(string: String) {
-        if (isEmpty()) {
+    fun StringBuilder.appendFlag(string: String?) {
+        if (isNullOrEmpty()) {
             append(string)
         } else {
             append(" | $string")
@@ -198,5 +202,11 @@ object StringUtils {
         }
 
         return links
+    }
+
+    fun String.emptyToString(string: String): String {
+        return this.ifEmpty {
+            string
+        }
     }
 }

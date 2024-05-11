@@ -16,12 +16,14 @@
       <w>alcatel</w>
       <w>aleed</w>
       <w>alignof</w>
+      <w>allowlisted</w>
       <w>alotaibi</w>
       <w>alph</w>
       <w>amzn</w>
       <w>anddoes</w>
       <w>anggrayudi</w>
       <w>antipattern</w>
+      <w>aosp</w>
       <w>apk</w>
       <w>apkinstaller</w>
       <w>apkm</w>
@@ -43,6 +45,7 @@
       <w>bdsw</w>
       <w>benjaluth</w>
       <w>bgcolor</w>
+      <w>binarfiles</w>
       <w>bitset</w>
       <w>bitstream</w>
       <w>blang</w>
@@ -53,6 +56,7 @@
       <w>bprettyprint</w>
       <w>bprettyprinted</w>
       <w>brault</w>
+      <w>buildtype</w>
       <w>builtins</w>
       <w>busybox</w>
       <w>candara</w>
@@ -66,16 +70,20 @@
       <w>chillax</w>
       <w>chodron</w>
       <w>codota</w>
+      <w>coex</w>
       <w>colorizer</w>
       <w>colorvalue</w>
       <w>comfortaa</w>
       <w>condattr</w>
+      <w>consentless</w>
       <w>consolas</w>
       <w>constraintlayout</w>
       <w>controlkey</w>
       <w>crowdin</w>
+      <w>crownguard</w>
       <w>ctrlkey</w>
       <w>davemorrissey</w>
+      <w>debloat</w>
       <w>debloated</w>
       <w>debloater</w>
       <w>debloating</w>
@@ -109,14 +117,19 @@
       <w>eisu</w>
       <w>elif</w>
       <w>ellipsizing</w>
+      <w>embms</w>
       <w>emmc</w>
+      <w>emperormummy</w>
       <w>endcall</w>
       <w>enoent</w>
       <w>entaytion</w>
+      <w>ertuğrul</w>
       <w>esac</w>
       <w>español</w>
+      <w>euicc</w>
       <w>excidle</w>
       <w>extern</w>
+      <w>externalstorage</w>
       <w>extsd</w>
       <w>extsdcard</w>
       <w>eyjge</w>
@@ -125,6 +138,7 @@
       <w>ffff</w>
       <w>fffffff</w>
       <w>ffffffff</w>
+      <w>flinger</w>
       <w>fmask</w>
       <w>fnkey</w>
       <w>fone</w>
@@ -138,7 +152,9 @@
       <w>gogh</w>
       <w>gonçalves</w>
       <w>gormeister</w>
+      <w>grdlkey</w>
       <w>grotesk</w>
+      <w>gservices</w>
       <w>gudo</w>
       <w>gudorlltti</w>
       <w>gumroad</w>
@@ -151,12 +167,16 @@
       <w>heic</w>
       <w>henkan</w>
       <w>homescreen</w>
+      <w>horiz</w>
+      <w>hotword</w>
       <w>hsiafan</w>
       <w>huntr</w>
       <w>huutai</w>
       <w>ime's</w>
       <w>inari</w>
+      <w>incall</w>
       <w>indd</w>
+      <w>indexables</w>
       <w>indt</w>
       <w>infos</w>
       <w>initialcommand</w>
@@ -173,10 +193,12 @@
       <w>jost</w>
       <w>kbit</w>
       <w>keyevent</w>
+      <w>keyphrases</w>
       <w>kislay</w>
       <w>kmgtpe</w>
       <w>knownfile</w>
       <w>kulinich</w>
+      <w>kumbhani</w>
       <w>kyoya</w>
       <w>landroid</w>
       <w>lato</w>
@@ -186,13 +208,17 @@
       <w>lightbulb</w>
       <w>linenums</w>
       <w>lingala</w>
+      <w>localeconfig</w>
       <w>logd</w>
       <w>longpress</w>
+      <w>lowpan</w>
       <w>lrcs</w>
+      <w>lyysunhourkk</w>
       <w>majeur</w>
       <w>malgon</w>
       <w>manrope</w>
       <w>markunmark</w>
+      <w>markwon</w>
       <w>maxx</w>
       <w>mbit</w>
       <w>menlo</w>
@@ -233,6 +259,7 @@
       <w>onload</w>
       <w>onreadystatechange</w>
       <w>opendocument</w>
+      <w>openintents</w>
       <w>openxmlformats</w>
       <w>orderby</w>
       <w>otechie</w>
@@ -259,6 +286,7 @@
       <w>privact</w>
       <w>privextra</w>
       <w>proc</w>
+      <w>profcollect</w>
       <w>profm</w>
       <w>prog</w>
       <w>proly</w>
@@ -271,6 +299,7 @@
       <w>qwuark</w>
       <w>rajdhani</w>
       <w>rasendriya</w>
+      <w>ravikumbhani</w>
       <w>readystatechange</w>
       <w>recents</w>
       <w>rects</w>
@@ -278,6 +307,7 @@
       <w>refetching</w>
       <w>reforma</w>
       <w>reinstaller</w>
+      <w>remoteviews</w>
       <w>reparenting</w>
       <w>reshowed</w>
       <w>rikka</w>
@@ -290,6 +320,9 @@
       <w>rummler</w>
       <w>rwkyxh</w>
       <w>salehali</w>
+      <w>savasla</w>
+      <w>savaş</w>
+      <w>sağlam</w>
       <w>sbyte</w>
       <w>scaler</w>
       <w>scrollback</w>
@@ -306,14 +339,18 @@
       <w>solarized</w>
       <w>sonyericsson</w>
       <w>sonymobile</w>
+      <w>sorocean</w>
+      <w>soundtrigger</w>
       <w>spmf</w>
       <w>spreadsheetml</w>
       <w>squareup</w>
       <w>srikanth</w>
       <w>stackalloc</w>
       <w>stacktraces</w>
+      <w>statscompanion</w>
       <w>statusbar</w>
       <w>stels</w>
+      <w>subpanels</w>
       <w>substr</w>
       <w>sunilpaulmathew</w>
       <w>svgz</w>
@@ -342,11 +379,14 @@
       <w>transbinary</w>
       <w>transitionseverywhere</w>
       <w>typeid</w>
+      <w>türkçe</w>
       <w>uage</w>
       <w>uint</w>
       <w>ulong</w>
       <w>unanimated</w>
+      <w>unexported</w>
       <w>unhide</w>
+      <w>unlckr</w>
       <w>unlicense</w>
       <w>unlocker</w>
       <w>unmark</w>
@@ -354,6 +394,7 @@
       <w>upto</w>
       <w>urbanist</w>
       <w>usebackq</w>
+      <w>userdebug</w>
       <w>ushort</w>
       <w>varints</w>
       <w>venezia</w>
@@ -383,6 +424,7 @@
       <w>xapk</w>
       <w>xposeddescription</w>
       <w>xposedmodule</w>
+      <w>yazan</w>
       <w>yessica</w>
       <w>yoyodyne</w>
       <w>zaur</w>

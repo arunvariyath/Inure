@@ -47,4 +47,34 @@ object Warnings {
      * Root service is taking too long to respond
      */
     fun getRootServiceTimeoutWarning(): String = "0x009: Root service is taking too long to respond, try restarting the app."
+
+    /**
+     * Activity not found or not supported by your device
+     */
+    fun getActivityNotFoundWarning(): String = "0x00A: Activity not found or not supported by your device"
+
+    /**
+     * Shizuku binder is not ready
+     */
+    const val SHIZUKU_BINDER_NOT_READY = "0x00B: Shizuku binder is not ready, please check if Shizuku is running properly."
+
+    /**
+     * Shizuku permission denied, please open the Shizuku app and grant the permission
+     */
+    const val SHIZUKU_PERMISSION_DENIED = "0x00C: Shizuku permission denied, please open the Shizuku app and grant the permission manually."
+
+    /**
+     * Android System dex classes are not supported
+     */
+    const val ANDROID_SYSTEM_DEX_CLASSES = "0x00D: Android System dex classes are not supported"
+
+    /**
+     * Empty flags
+     */
+    const val EMPTY_FLAGS = "0x00E: Empty flags"
+
+    /**
+     * Usage stats access blocked
+     */
+    const val USAGE_STATS_ACCESS_BLOCKED = "0x00F: Usage stats access blocked"
 }

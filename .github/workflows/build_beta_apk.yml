@@ -1,6 +1,17 @@
 name: Build APK (Beta)
 
 on:
+    push:
+        branches:
+            - master
+        paths-ignore:
+            - '**.md'
+            - '**.yml'
+            - '**.json'
+            - '**.lock'
+            - '**.properties'
+            - '**.py'
+            - '**.sh'
     workflow_dispatch:
         inputs:
             message:
@@ -9,7 +20,38 @@ on:
                 default: 'The beta build is ready for testing'
 
 jobs:
+    validation:
+        name: Commit Validation
+        runs-on: ubuntu-latest
+
+        outputs:
+            CANCEL_WORKFLOW: ${{ steps.check_commit_message.outputs.CANCEL_WORKFLOW }}
+
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+
+            -   name: Check commit message
+                run: |
+                    if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+                        echo "Workflow was manually dispatched. Skipping commit message check."
+                        echo "CANCEL_WORKFLOW=false" >> $GITHUB_OUTPUT
+                    else
+                        commit_message=$(git log --format=%B -n 1)
+                        if [[ ! "$commit_message" == *"build beta"* ]]; then
+                            echo "Commit message does not contain 'build beta'. Cancelling workflow."
+                            echo "CANCEL_WORKFLOW=true" >> $GITHUB_OUTPUT
+                        else
+                            echo "Commit message contains 'build beta'. Proceeding with the workflow."
+                            echo "CANCEL_WORKFLOW=false" >> $GITHUB_OUTPUT
+                        fi
+                    fi
+                id: check_commit_message
+
+
     build:
+        needs: validation
+        if: needs.validation.outputs.CANCEL_WORKFLOW == 'false'
         name: Build APK
         runs-on: ubuntu-latest
 
@@ -23,6 +65,14 @@ jobs:
                     distribution: 'temurin'
                     java-version: '17'
                     cache: 'gradle'
+
+            -   name: Cache Gradle dependencies
+                uses: actions/cache@v4
+                with:
+                    path: ~/.gradle/caches
+                    key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+                    restore-keys: |
+                        ${{ runner.os }}-gradle-
 
             -   name: Decode Keystore
                 id: decode_keystore
@@ -47,10 +97,33 @@ jobs:
                     echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
                     echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
 
+            -   name: Append Latest Commit ID to Version Name
+                run: |
+                    # Append the latest commit ID to the version name
+                    VERSION_NAME="${{ env.VERSION_NAME }}_$(git rev-parse --short HEAD)"
+                    echo "Version Name: $VERSION_NAME"
+                    echo "Version Code: ${{ env.VERSION_CODE }}"
+
+                    # Set these values as environment variables for later steps
+                    echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+                    
+                    # Store the commit ID as an environment variable
+                    echo "COMMIT_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+            -   name: Set Current Commit Message
+                run: |
+                    # Set the first line of the commit message as an environment variable
+                    echo "COMMIT_MESSAGE=$(git log --format=%B -n 1 | head -n 1)" >> $GITHUB_ENV
+
             -   name: Build APK
-                run: | # Use 'bundleRelease' to build the release bundle
-                    chmod +x ./gradlew
-                    ./gradlew clean assembleBetaRelease
+                run: |
+                    if [[ -n "${{ env.GRADLE_PATH }}" ]]; then
+                        chmod +x "${{ env.GRADLE_PATH }}"
+                        ${{ env.GRADLE_PATH }} clean assembleBetaRelease
+                    else
+                        chmod +x ./gradlew
+                        ./gradlew clean assembleBetaRelease
+                    fi
                 env:
                     SIGNING_KEY_ALIAS: ${{ secrets.ALIAS }}
                     SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -94,6 +167,8 @@ jobs:
                         ${{ github.event.inputs.message }}
                         
                         Current Build Code: ${{ env.VERSION_CODE }}
+                        Current Commit ID: ${{ env.COMMIT_ID }}
+                        Commit Message: ${{ env.COMMIT_MESSAGE }}
 
             -   name: Archive APK
                 uses: actions/upload-artifact@v4

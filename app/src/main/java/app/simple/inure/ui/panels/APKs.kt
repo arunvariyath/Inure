@@ -16,7 +16,6 @@ import androidx.core.content.FileProvider
 import androidx.core.view.doOnPreDraw
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.selection.*
 import app.simple.inure.R
 import app.simple.inure.activities.association.ManifestAssociationActivity
 import app.simple.inure.adapters.ui.AdapterApks
@@ -39,7 +38,6 @@ import app.simple.inure.interfaces.fragments.SureCallbacks
 import app.simple.inure.models.ApkFile
 import app.simple.inure.popups.apks.PopupApkBrowser
 import app.simple.inure.preferences.ApkBrowserPreferences
-import app.simple.inure.ui.installer.Installer
 import app.simple.inure.ui.subpanels.ApksSearch
 import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.FileUtils.toFile
@@ -97,7 +95,7 @@ class APKs : ScopedFragment() {
                     requireArguments().putString(BundleConstants.transitionName, icon.transitionName)
                     requireArguments().putInt(BundleConstants.position, position)
                     // icon.transitionName = adapterApks.paths[position].absolutePath
-                    openFragmentArc(Installer.newInstance(uri), icon, "installer")
+                    openFragmentArc(Installer.newInstance(uri), icon, Installer.TAG)
                 }
 
                 override fun onApkLongClicked(view: View, position: Int, icon: ImageView) {
@@ -112,7 +110,7 @@ class APKs : ScopedFragment() {
                             requireArguments().putString(BundleConstants.transitionName, icon.transitionName)
                             requireArguments().putInt(BundleConstants.position, position)
                             // icon.transitionName = adapterApks.paths[position].absolutePath
-                            openFragmentArc(Installer.newInstance(uri), icon, "installer")
+                            openFragmentArc(Installer.newInstance(uri), icon, Installer.TAG)
                         }
 
                         override fun onDeleteClicked() {
@@ -324,21 +322,21 @@ class APKs : ScopedFragment() {
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         super.onSharedPreferenceChanged(sharedPreferences, key)
         when (key) {
-            ApkBrowserPreferences.loadSplitIcon -> {
+            ApkBrowserPreferences.LOAD_SPLIT_ICON -> {
                 adapterApks.loadSplitIcon()
             }
 
-            ApkBrowserPreferences.apkFilter -> {
+            ApkBrowserPreferences.APK_FILTER -> {
                 apkBrowserViewModel.filter()
             }
 
-            ApkBrowserPreferences.reversed,
-            ApkBrowserPreferences.sortStyle,
+            ApkBrowserPreferences.REVERSED,
+            ApkBrowserPreferences.SORT_STYLE,
             -> {
                 apkBrowserViewModel.sort()
             }
 
-            ApkBrowserPreferences.externalStorage -> {
+            ApkBrowserPreferences.EXTERNAL_STORAGE -> {
                 apkBrowserViewModel.refresh()
                 apkScanner = childFragmentManager.showApkScanner()
             }
@@ -352,5 +350,7 @@ class APKs : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "APKs"
     }
 }

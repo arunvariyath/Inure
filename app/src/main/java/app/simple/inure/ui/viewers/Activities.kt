@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterActivities
+import app.simple.inure.adapters.viewers.AdapterActivities
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.dialogs.action.ActivityLauncher
@@ -57,6 +57,7 @@ class Activities : SearchBarScopedFragment() {
         activitiesViewModel.getActivities().observe(viewLifecycleOwner) { it ->
             adapterActivities = AdapterActivities(packageInfo, it, searchBox.text.toString().trim())
             recyclerView.adapter = adapterActivities
+            setCount(it.size)
 
             adapterActivities?.setOnActivitiesCallbacks(object : AdapterActivities.Companion.ActivitiesCallbacks {
                 override fun onActivityClicked(activityInfoModel: ActivityInfoModel, packageId: String) {
@@ -133,7 +134,7 @@ class Activities : SearchBarScopedFragment() {
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
-            ActivitiesPreferences.activitySearch -> {
+            ActivitiesPreferences.ACTIVITY_SEARCH -> {
                 searchBoxState(true, ActivitiesPreferences.isSearchVisible())
             }
         }
@@ -148,5 +149,7 @@ class Activities : SearchBarScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "activities"
     }
 }

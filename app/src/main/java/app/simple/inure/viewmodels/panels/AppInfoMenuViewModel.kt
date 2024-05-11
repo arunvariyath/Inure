@@ -20,16 +20,17 @@ import app.simple.inure.apk.utils.PackageUtils.isUpdateInstalled
 import app.simple.inure.apk.utils.PackageUtils.isUserApp
 import app.simple.inure.database.instances.TagsDatabase
 import app.simple.inure.extensions.viewmodels.WrappedViewModel
+import app.simple.inure.helpers.ShizukuServiceHelper
 import app.simple.inure.models.BatteryOptimizationModel
 import app.simple.inure.preferences.ConfigurationPreferences
 import app.simple.inure.preferences.DevelopmentPreferences
-import app.simple.inure.shizuku.ShizukuUtils
 import app.simple.inure.util.AppUtils
+import app.simple.inure.util.AppUtils.isUnlocker
 import app.simple.inure.util.ArrayUtils.toArrayList
 import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.FileUtils.toFile
 import app.simple.inure.util.FlagUtils
-import app.simple.inure.util.TrackerUtils.getTrackerSignatures
+import app.simple.inure.util.TrackerUtils
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -145,6 +146,21 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
                 }
             }
 
+            packageManager.queryIntentActivities(Intent().apply {
+                action = Intent.ACTION_SEARCH
+            }, 0).let { resolveInfos ->
+                for (resolveInfo in resolveInfos) {
+                    if (resolveInfo.activityInfo.packageName == packageInfo.packageName) {
+                        list.add(Pair(R.drawable.ic_search, R.string.search))
+                        break
+                    }
+                }
+            }
+
+            packageInfo.applicationInfo.manageSpaceActivityName?.let {
+                list.add(Pair(R.drawable.ic_sd_storage, R.string.manage_space))
+            }
+
             menuOptions.postValue(list)
         }
     }
@@ -169,7 +185,9 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
             list.add(Pair(R.drawable.ic_extras, R.string.extras))
             list.add(Pair(R.drawable.ic_shared_libs, R.string.shared_libs))
             if (isInstalled) {
-                list.add(Pair(R.drawable.ic_code, R.string.dex_classes))
+                if (packageInfo.packageName != "android") { // Android System dex classes are not supported
+                    list.add(Pair(R.drawable.ic_code, R.string.dex_classes))
+                }
             }
             list.add(Pair(R.drawable.ic_radiation_nuclear, R.string.trackers))
 
@@ -179,9 +197,16 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
                 }
             }
 
-            if (ConfigurationPreferences.isUsingRoot() && isInstalled) {
-                list.add(1, Pair(R.drawable.ic_rocket_launch, R.string.operations))
-                list.add(Pair(R.drawable.sc_preferences, R.string.shared_prefs))
+            if (ConfigurationPreferences.isRootOrShizuku() && isInstalled) {
+                if (isNotThisApp()) {
+                    list.add(1, Pair(R.drawable.ic_rocket_launch, R.string.operations))
+                }
+            }
+
+            if (ConfigurationPreferences.isUsingRoot()) {
+                if (isNotThisApp()) {
+                    list.add(Pair(R.drawable.ic_settings, R.string.shared_prefs))
+                }
             }
 
             menuItems.postValue(list)
@@ -192,13 +217,18 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
         viewModelScope.launch(Dispatchers.Default) {
             val list = arrayListOf<Pair<Int, Int>>()
 
-            list.add(Pair(R.drawable.ic_downloading, R.string.extract))
+            if (packageInfo.isUnlocker().invert()) {
+                list.add(Pair(R.drawable.ic_downloading, R.string.extract))
+            }
+
             list.add(Pair(R.drawable.ic_play_store, R.string.play_store))
 
             if (AppUtils.isGithubFlavor()) {
-                list.add(Pair(R.drawable.ic_fdroid, R.string.fdroid))
-                list.add(Pair(R.drawable.ic_amazon, R.string.amazon))
-                list.add(Pair(R.drawable.ic_galaxy_appstore, R.string.galaxy_store))
+                if (packageInfo.isUnlocker().invert()) {
+                    list.add(Pair(R.drawable.ic_fdroid, R.string.fdroid))
+                    list.add(Pair(R.drawable.ic_amazon, R.string.amazon))
+                    list.add(Pair(R.drawable.ic_galaxy_appstore, R.string.galaxy_store))
+                }
             }
 
             miscellaneousItems.postValue(list)
@@ -210,7 +240,9 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
             add(Pair(R.drawable.ic_launch, R.string.launch))
         }
 
-        add(Pair(R.drawable.ic_send, R.string.send))
+        if (packageInfo.isUnlocker().invert()) {
+            add(Pair(R.drawable.ic_send, R.string.send))
+        }
 
         if (isNotThisApp()) {
             add(Pair(R.drawable.ic_delete, R.string.uninstall))
@@ -252,7 +284,9 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
             add(Pair(R.drawable.ic_launch, R.string.launch))
         }
 
-        add(Pair(R.drawable.ic_send, R.string.send))
+        if (packageInfo.isUnlocker().invert()) {
+            add(Pair(R.drawable.ic_send, R.string.send))
+        }
 
         if (isNotThisApp()) {
             add(Pair(R.drawable.ic_delete, R.string.uninstall))
@@ -295,7 +329,9 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
                 add(Pair(R.drawable.ic_launch, R.string.launch))
             }
 
-            add(Pair(R.drawable.ic_send, R.string.send))
+            if (packageInfo.isUnlocker().invert()) {
+                add(Pair(R.drawable.ic_send, R.string.send))
+            }
 
             if (isNotThisApp()) {
                 add(Pair(R.drawable.ic_delete, R.string.uninstall))
@@ -305,7 +341,9 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
                 add(Pair(R.drawable.ic_launch, R.string.launch))
             }
 
-            add(Pair(R.drawable.ic_send, R.string.send))
+            if (packageInfo.isUnlocker().invert()) {
+                add(Pair(R.drawable.ic_send, R.string.send))
+            }
 
             if (isNotThisApp()) {
                 if (packageInfo.isUpdateInstalled()) {
@@ -348,7 +386,7 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
                     }
                 }
 
-                val trackers = application.getTrackerSignatures()
+                val trackers = TrackerUtils.getTrackerSignatures()
                 var count = 0
 
                 if (packageInfo.activities != null) {
@@ -441,25 +479,27 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
                         batteryOptimization.postValue(batteryOptimizationModel)
                     }
                     ConfigurationPreferences.isUsingShizuku() -> {
-                        ShizukuUtils.execInternal(app.simple.inure.shizuku.Shell.Command("dumpsys deviceidle whitelist"), null).let { result ->
-                            if (result.isSuccess) {
-                                if (result.out.isNotEmpty()) {
-                                    val lines = result.out.split("\n")
-                                    for (line in lines) {
-                                        if (line.contains(packageInfo.packageName)) {
-                                            batteryOptimizationModel.isOptimized = false
-                                            break
-                                        } else {
-                                            batteryOptimizationModel.isOptimized = true
+                        ShizukuServiceHelper.getInstance().getBoundService { service ->
+                            service.simpleExecute("dumpsys deviceidle whitelist").let { result ->
+                                if (result.isSuccess) {
+                                    if (result.output?.isNotEmpty() == true) {
+                                        val lines = result.output.split("\n")
+                                        for (line in lines) {
+                                            if (line.contains(packageInfo.packageName)) {
+                                                batteryOptimizationModel.isOptimized = false
+                                                break
+                                            } else {
+                                                batteryOptimizationModel.isOptimized = true
+                                            }
                                         }
+                                    } else {
+                                        batteryOptimizationModel.isOptimized = true
                                     }
-                                } else {
-                                    batteryOptimizationModel.isOptimized = true
                                 }
                             }
-                        }
 
-                        batteryOptimization.postValue(batteryOptimizationModel)
+                            batteryOptimization.postValue(batteryOptimizationModel)
+                        }
                     }
                 }
             }
@@ -490,19 +530,23 @@ class AppInfoMenuViewModel(application: Application, val packageInfo: PackageInf
                 }
                 ConfigurationPreferences.isUsingShizuku() -> {
                     if (optimize) {
-                        ShizukuUtils.execInternal(app.simple.inure.shizuku.Shell.Command("cmd deviceidle whitelist -${packageInfo.packageName}"), null).let {
-                            if (it.isSuccess) {
-                                batteryOptimization.postValue(BatteryOptimizationModel(packageInfo, true))
-                            } else {
-                                batteryOptimization.postValue(BatteryOptimizationModel(packageInfo, false))
+                        ShizukuServiceHelper.getInstance().getBoundService { service ->
+                            service.simpleExecute("cmd deviceidle whitelist -${packageInfo.packageName}").let { result ->
+                                if (result.isSuccess) {
+                                    batteryOptimization.postValue(BatteryOptimizationModel(packageInfo, true))
+                                } else {
+                                    batteryOptimization.postValue(BatteryOptimizationModel(packageInfo, false))
+                                }
                             }
                         }
                     } else {
-                        ShizukuUtils.execInternal(app.simple.inure.shizuku.Shell.Command("cmd deviceidle whitelist +${packageInfo.packageName}"), null).let {
-                            if (it.isSuccess) {
-                                batteryOptimization.postValue(BatteryOptimizationModel(packageInfo, false))
-                            } else {
-                                batteryOptimization.postValue(BatteryOptimizationModel(packageInfo, true))
+                        ShizukuServiceHelper.getInstance().getBoundService { service ->
+                            service.simpleExecute("cmd deviceidle whitelist +${packageInfo.packageName}").let { result ->
+                                if (result.isSuccess) {
+                                    batteryOptimization.postValue(BatteryOptimizationModel(packageInfo, false))
+                                } else {
+                                    batteryOptimization.postValue(BatteryOptimizationModel(packageInfo, true))
+                                }
                             }
                         }
                     }

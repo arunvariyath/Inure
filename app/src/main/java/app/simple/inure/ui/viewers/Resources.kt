@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterResources
+import app.simple.inure.adapters.viewers.AdapterResources
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.extensions.fragments.SearchBarScopedFragment
@@ -46,6 +46,8 @@ class Resources : SearchBarScopedFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         componentsViewModel.getResources().observe(viewLifecycleOwner) {
+            setCount(it.size)
+
             if (recyclerView.adapter.isNull()) {
                 val adapterResources = AdapterResources(it, searchBox.text.toString().trim())
                 recyclerView.adapter = adapterResources
@@ -53,9 +55,9 @@ class Resources : SearchBarScopedFragment() {
                 adapterResources.setOnResourceClickListener(object : AdapterResources.ResourceCallbacks {
                     override fun onResourceClicked(path: String) {
                         if (DevelopmentPreferences.get(DevelopmentPreferences.isWebViewXmlViewer)) {
-                            openFragmentSlide(XMLViewerWebView.newInstance(packageInfo, path), "wv_xml")
+                            openFragmentSlide(XMLWebView.newInstance(packageInfo, path), "wv_xml")
                         } else {
-                            openFragmentSlide(XMLViewerTextView.newInstance(packageInfo, false, path), "tv_xml")
+                            openFragmentSlide(XML.newInstance(packageInfo, false, path), "tv_xml")
                         }
                     }
 
@@ -106,5 +108,7 @@ class Resources : SearchBarScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "resources"
     }
 }

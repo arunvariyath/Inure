@@ -11,11 +11,11 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import app.simple.inure.apk.utils.PackageUtils
-import app.simple.inure.apk.utils.PackageUtils.isPackageInstalledAndEnabled
 import app.simple.inure.apk.utils.ReceiversUtils
 import app.simple.inure.constants.SortConstant
 import app.simple.inure.constants.Warnings
 import app.simple.inure.extensions.viewmodels.RootShizukuViewModel
+import app.simple.inure.helpers.ShizukuServiceHelper
 import app.simple.inure.models.BootManagerModel
 import app.simple.inure.preferences.BootManagerPreferences
 import app.simple.inure.util.FlagUtils
@@ -65,7 +65,7 @@ class BootManagerViewModel(application: Application) : RootShizukuViewModel(appl
         loadBootComponents()
     }
 
-    override fun onShizukuCreated() {
+    override fun onShizukuCreated(shizukuServiceHelper: ShizukuServiceHelper) {
 
     }
 
@@ -83,7 +83,7 @@ class BootManagerViewModel(application: Application) : RootShizukuViewModel(appl
 
             packageNames.forEach { packageName ->
                 val bootManagerModel = BootManagerModel()
-                bootManagerModel.packageInfo = packageName.getPackageInfo()
+                bootManagerModel.packageInfo = packageName.getPackageInfo() ?: return@forEach
                 bootManagerModel.packageInfo.applicationInfo.name = PackageUtils.getApplicationName(applicationContext(), packageName)
                 bootManagerModel.isEnabled = packageManager.isPackageInstalledAndEnabled(packageName)
 
@@ -300,11 +300,14 @@ class BootManagerViewModel(application: Application) : RootShizukuViewModel(appl
     }
 
     private fun String.getPackageInfo(): PackageInfo? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            packageManager.getPackageInfo(this, PackageManager.PackageInfoFlags.of(PackageUtils.flags))
-        } else {
-            @Suppress("DEPRECATION")
-            packageManager.getPackageInfo(this, PackageUtils.flags.toInt())
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.getPackageInfo(this, PackageManager.PackageInfoFlags.of(PackageUtils.flags))
+            } else {
+                packageManager.getPackageInfo(this, PackageUtils.flags.toInt())
+            }
+        } catch (e: PackageManager.NameNotFoundException) {
+            null
         }
     }
 

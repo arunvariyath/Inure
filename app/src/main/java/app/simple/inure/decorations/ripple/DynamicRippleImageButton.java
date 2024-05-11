@@ -158,7 +158,7 @@ public class DynamicRippleImageButton extends ThemeButton {
             setBackgroundTintList(null);
             setBackgroundTintList(ColorStateList.valueOf(ColorUtils.INSTANCE.changeAlpha(
                     ColorUtils.INSTANCE.resolveAttrColor(getContext(), R.attr.colorAppAccent),
-                    25)));
+                    Misc.highlightColorAlpha)));
             
             LayoutBackground.setBackground(getContext(), this, null);
         } else {
@@ -169,7 +169,7 @@ public class DynamicRippleImageButton extends ThemeButton {
     
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (Objects.equals(key, AppearancePreferences.accentColor)) {
+        if (Objects.equals(key, AppearancePreferences.ACCENT_COLOR)) {
             setHighlightBackgroundColor();
         }
     }

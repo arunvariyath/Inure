@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterServices
+import app.simple.inure.adapters.viewers.AdapterServices
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.dialogs.action.ComponentState
@@ -53,6 +53,7 @@ class Services : SearchBarScopedFragment() {
         servicesViewModel.getServices().observe(viewLifecycleOwner) {
             adapterServices = AdapterServices(it, packageInfo, searchBox.text.toString().trim())
             recyclerView.adapter = adapterServices
+            setCount(it.size)
 
             adapterServices?.setOnServiceCallbackListener(object : AdapterServices.Companion.ServicesCallbacks {
                 override fun onServiceClicked(serviceInfoModel: ServiceInfoModel) {
@@ -119,5 +120,7 @@ class Services : SearchBarScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "services"
     }
 }

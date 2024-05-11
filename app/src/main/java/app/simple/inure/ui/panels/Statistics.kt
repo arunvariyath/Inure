@@ -14,7 +14,7 @@ import app.simple.inure.adapters.ui.AdapterUsageStats
 import app.simple.inure.constants.BottomMenuConstants
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
-import app.simple.inure.dialogs.menus.AppsMenu
+import app.simple.inure.dialogs.app.AppMenu
 import app.simple.inure.dialogs.miscellaneous.UsageStatsPermission
 import app.simple.inure.dialogs.miscellaneous.UsageStatsPermission.Companion.showUsageStatsPermissionDialog
 import app.simple.inure.dialogs.usagestats.UsageStatsMenu
@@ -42,8 +42,12 @@ class Statistics : ScopedFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        showLoader()
-        fullVersionCheck()
+
+        if (fullVersionCheck()) {
+            if (usageStatsViewModel.shouldShowLoader()) {
+                showLoader(manualOverride = true)
+            }
+        }
 
         if (!requireContext().checkForUsageAccessPermission()) {
             childFragmentManager.showUsageStatsPermissionDialog()
@@ -67,7 +71,7 @@ class Statistics : ScopedFragment() {
                 }
 
                 override fun onAppLongPressed(packageInfo: PackageInfo, icon: ImageView) {
-                    AppsMenu.newInstance(packageInfo)
+                    AppMenu.newInstance(packageInfo)
                         .show(childFragmentManager, "apps_menu")
                 }
             })
@@ -134,5 +138,7 @@ class Statistics : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "statistics"
     }
 }

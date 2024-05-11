@@ -16,10 +16,8 @@ import app.simple.inure.decorations.ripple.DynamicRippleTextView
 import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.decorations.views.CustomProgressBar
 import app.simple.inure.dialogs.app.FullVersion.Companion.showFullVersion
-import app.simple.inure.dialogs.app.Sure
 import app.simple.inure.dialogs.miscellaneous.Warning
 import app.simple.inure.extensions.activities.BaseActivity
-import app.simple.inure.interfaces.fragments.SureCallbacks
 import app.simple.inure.loaders.AppDataLoader.exportAppData
 import app.simple.inure.loaders.AppDataLoader.importAppData
 import app.simple.inure.preferences.AppearancePreferences
@@ -44,6 +42,9 @@ class ManageSpace : BaseActivity() {
     private lateinit var clearImagesData: DynamicRippleTextView
     private lateinit var imagesSize: TypeFaceTextView
     private lateinit var clearAppDataLoader: CustomProgressBar
+    private lateinit var cacheLoader: CustomProgressBar
+    private lateinit var cacheSize: TypeFaceTextView
+    private lateinit var clearCache: DynamicRippleTextView
     private lateinit var imagesLoader: CustomProgressBar
     private lateinit var appDataLoader: CustomProgressBar
     private lateinit var import: DynamicRippleTextView
@@ -113,6 +114,7 @@ class ManageSpace : BaseActivity() {
                         if (errors.isNotEmpty()) {
                             showWarning(errors.joinToString("\n"), goBack = false)
                         } else {
+                            appDataLoader.gone(animate = true)
                             showWarning(R.string.done, goBack = false)
                         }
 
@@ -125,11 +127,6 @@ class ManageSpace : BaseActivity() {
                     appDataLoader.gone(animate = true)
                     showWarning(it.message ?: "Unknown error", false)
                 }
-            }.onSuccess {
-                withContext(Dispatchers.Main) {
-                    appDataLoader.gone(animate = true)
-                    showWarning(R.string.done, goBack = false)
-                }
             }
         }
     }
@@ -141,6 +138,9 @@ class ManageSpace : BaseActivity() {
 
         clearData = findViewById(R.id.clear_app_data)
         clearAppDataLoader = findViewById(R.id.clear_app_data_loader)
+        cacheLoader = findViewById(R.id.cache_loader)
+        cacheSize = findViewById(R.id.cache_size)
+        clearCache = findViewById(R.id.clear_cache)
         clearImagesData = findViewById(R.id.clear_image_data)
         imagesSize = findViewById(R.id.image_cache_size)
         imagesLoader = findViewById(R.id.image_cache_loader)
@@ -200,15 +200,24 @@ class ManageSpace : BaseActivity() {
             clearImagesData.visible(animate = true)
 
             clearImagesData.setOnClickListener {
-                val p = Sure.newInstance()
-                p.setOnSureCallbackListener(object : SureCallbacks {
-                    override fun onSure() {
-                        imagesLoader.visible(animate = true)
-                        manageSpaceViewModel.clearImagesData()
-                    }
-                })
+                onSure {
+                    imagesLoader.visible(animate = true)
+                    manageSpaceViewModel.clearImagesData()
+                }
+            }
+        }
 
-                p.show(supportFragmentManager, "sure")
+        manageSpaceViewModel.getAppCacheSize().observe(this) {
+            cacheSize.visible(animate = true)
+            cacheSize.text = it
+            cacheLoader.gone(animate = true)
+            clearCache.visible(animate = true)
+
+            clearCache.setOnClickListener {
+                onSure {
+                    cacheLoader.visible(animate = true)
+                    manageSpaceViewModel.clearCache()
+                }
             }
         }
     }
@@ -260,21 +269,17 @@ class ManageSpace : BaseActivity() {
     }
 
     private fun clearAppData() {
-        val p = Sure.newInstance()
-        p.setOnSureCallbackListener(object : SureCallbacks {
-            override fun onSure() {
-                if ((applicationContext.getSystemService(ACTIVITY_SERVICE) as ActivityManager).clearApplicationUserData().invert()) {
-                    Warning.newInstance(getString(R.string.failed)).show(supportFragmentManager, "warning")
-                }
+        onSure {
+            if ((applicationContext.getSystemService(ACTIVITY_SERVICE) as ActivityManager).clearApplicationUserData().invert()) {
+                Warning.newInstance(getString(R.string.failed)).show(supportFragmentManager, "warning")
             }
-        })
-        p.show(supportFragmentManager, "sure")
+        }
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         super.onSharedPreferenceChanged(sharedPreferences, key)
         when (key) {
-            AppearancePreferences.theme -> {
+            AppearancePreferences.THEME -> {
                 ThemeUtils.setAppTheme(resources)
             }
         }

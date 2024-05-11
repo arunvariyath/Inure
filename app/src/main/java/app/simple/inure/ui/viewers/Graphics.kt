@@ -9,12 +9,13 @@ import android.view.ViewGroup
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterGraphics
+import app.simple.inure.adapters.viewers.AdapterGraphics
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.decorations.ripple.DynamicRippleImageButton
 import app.simple.inure.extensions.fragments.SearchBarScopedFragment
 import app.simple.inure.factories.panels.PackageInfoFactory
+import app.simple.inure.models.Graphic
 import app.simple.inure.popups.viewers.PopupGraphicsMenu
 import app.simple.inure.preferences.DevelopmentPreferences
 import app.simple.inure.preferences.GraphicsPreferences
@@ -51,20 +52,22 @@ class Graphics : SearchBarScopedFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         graphicsViewModel.getGraphics().observe(viewLifecycleOwner) {
+            setCount(it.size)
+
             if (recyclerView.adapter.isNull()) {
                 adapterGraphics = AdapterGraphics(packageInfo.applicationInfo.sourceDir, it, searchBox.text.toString().trim())
                 recyclerView.adapter = adapterGraphics
 
                 adapterGraphics!!.setOnResourceClickListener(object : AdapterGraphics.GraphicsCallbacks {
-                    override fun onGraphicsClicked(path: String, filePath: String, view: ViewGroup, xOff: Float, yOff: Float) {
-                        openFragmentSlide(ImageViewer.newInstance(packageInfo.applicationInfo.sourceDir, filePath), "image_viewer")
+                    override fun onGraphicsClicked(path: String, graphics: Graphic, view: ViewGroup, xOff: Float, yOff: Float) {
+                        openFragmentSlide(Image.newInstance(packageInfo.applicationInfo.sourceDir, graphics.path), "image_viewer")
                     }
 
-                    override fun onGraphicsLongPressed(filePath: String) {
+                    override fun onGraphicsLongPressed(graphic: Graphic) {
                         if (DevelopmentPreferences.get(DevelopmentPreferences.isWebViewXmlViewer)) {
-                            openFragmentSlide(XMLViewerWebView.newInstance(packageInfo, filePath), "wv_xml")
+                            openFragmentSlide(XMLWebView.newInstance(packageInfo, graphic.path), "wv_xml")
                         } else {
-                            openFragmentSlide(XMLViewerTextView.newInstance(packageInfo, false, filePath), "tv_xml")
+                            openFragmentSlide(XML.newInstance(packageInfo, false, graphic.path), "tv_xml")
                         }
                     }
                 })

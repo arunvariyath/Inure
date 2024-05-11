@@ -6,13 +6,14 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterTrackers
+import app.simple.inure.adapters.viewers.AdapterTrackers
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.factories.installer.InstallerViewModelFactory
 import app.simple.inure.interfaces.fragments.InstallerCallbacks
 import app.simple.inure.models.Tracker
+import app.simple.inure.ui.subviewers.TrackerInfo
 import app.simple.inure.util.ParcelUtils.serializable
 import app.simple.inure.viewmodels.installer.InstallerTrackersViewModel
 import java.io.File
@@ -44,7 +45,7 @@ class Trackers : ScopedFragment() {
             val adapterTrackers = AdapterTrackers(trackers, "")
 
             adapterTrackers.setOnTrackersClickListener(object : AdapterTrackers.TrackersCallbacks {
-                override fun onTrackersClicked(tracker: Tracker, enabled: Boolean, position: Int) {
+                override fun onTrackerSwitchChanged(tracker: Tracker, enabled: Boolean, position: Int) {
                     if (enabled) {
                         installerTrackersViewModel.unblockTrackers(arrayListOf(tracker), position)
                     } else {
@@ -57,6 +58,11 @@ class Trackers : ScopedFragment() {
                             installerTrackersViewModel.clear()
                         }
                     }
+                }
+
+                override fun onTrackersClicked(tracker: Tracker) {
+                    (parentFragment as ScopedFragment).clearTransitions()
+                    openFragmentSlide(TrackerInfo.newInstance(tracker), TrackerInfo.TAG)
                 }
             })
 

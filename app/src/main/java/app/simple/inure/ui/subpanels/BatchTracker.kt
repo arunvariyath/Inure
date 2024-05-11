@@ -15,6 +15,9 @@ import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.decorations.views.LoaderImageView
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.factories.batch.BatchTrackersFactory
+import app.simple.inure.models.Tracker
+import app.simple.inure.preferences.ConfigurationPreferences
+import app.simple.inure.ui.subviewers.TrackerInfo
 import app.simple.inure.util.ViewUtils.gone
 import app.simple.inure.util.ViewUtils.visible
 import app.simple.inure.viewmodels.batch.BatchTrackersViewModel
@@ -53,6 +56,14 @@ class BatchTracker : ScopedFragment() {
         startPostponedEnterTransition()
         loader.visible(animate = false)
 
+        if (ConfigurationPreferences.isUsingRoot()) {
+            block.text = getString(R.string.block)
+            unblock.text = getString(R.string.unblock)
+        } else {
+            block.gone()
+            unblock.gone()
+        }
+
         batchTrackersViewModel?.getTrackers()?.observe(viewLifecycleOwner) {
             loader.gone(animate = true)
             progress.gone(animate = true)
@@ -63,7 +74,11 @@ class BatchTracker : ScopedFragment() {
                 unblock.visible(animate = true)
             }
 
-            recyclerView.adapter = AdapterBatchTracker(it)
+            recyclerView.adapter = AdapterBatchTracker(it, object : AdapterBatchTracker.Companion.BatchTrackerCallbacks {
+                override fun onBatchLongPressed(tracker: Tracker) {
+                    openFragmentSlide(TrackerInfo.newInstance(tracker), TrackerInfo.TAG)
+                }
+            })
         }
 
         batchTrackersViewModel?.getProgress()?.observe(viewLifecycleOwner) {
@@ -80,8 +95,8 @@ class BatchTracker : ScopedFragment() {
 
         block.setOnClickListener {
             loader.visible(animate = true)
-            batchTrackersViewModel
-                ?.changeTrackerState((recyclerView.adapter as AdapterBatchTracker).getSelectedPackages(), true) {
+            loader.start()
+            batchTrackersViewModel?.changeTrackerState((recyclerView.adapter as AdapterBatchTracker).getSelectedPackages(), true) {
                     postDelayed {
                         loader.gone(animate = true)
                         showWarning(getString(R.string.done), false)
@@ -91,6 +106,7 @@ class BatchTracker : ScopedFragment() {
 
         unblock.setOnClickListener {
             loader.visible(animate = true)
+            loader.start()
             batchTrackersViewModel
                 ?.changeTrackerState((recyclerView.adapter as AdapterBatchTracker).getSelectedPackages(), false) {
                     postDelayed {

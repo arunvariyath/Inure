@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
@@ -23,11 +24,13 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.RecyclerView;
 import app.simple.inure.R;
 import app.simple.inure.adapters.menus.AdapterBottomMenu;
-import app.simple.inure.constants.BottomMenuConstants;
 import app.simple.inure.decorations.corners.LayoutBackground;
 import app.simple.inure.decorations.overscroll.CustomHorizontalRecyclerView;
 import app.simple.inure.interfaces.menus.BottomMenuCallbacks;
+import app.simple.inure.preferences.AppearancePreferences;
 import app.simple.inure.preferences.DevelopmentPreferences;
+import app.simple.inure.preferences.MainPreferences;
+import app.simple.inure.themes.manager.Theme;
 import app.simple.inure.util.ViewUtils;
 import kotlin.Pair;
 import kotlin.ranges.RangesKt;
@@ -43,6 +46,8 @@ public class BottomMenuRecyclerView extends CustomHorizontalRecyclerView {
     private boolean isScrollListenerAdded = false;
     private boolean isInitialized = false;
     private boolean isBottomMenuVisible = true;
+    
+    private final int MIN_ITEMS_THRESHOLD = 12;
     
     public static final String ACTION_CLOSE_BOTTOM_MENU = "app.simple.inure.ACTION_CLOSE_BOTTOM_MENU";
     public static final String ACTION_OPEN_BOTTOM_MENU = "app.simple.inure.ACTION_OPEN_BOTTOM_MENU";
@@ -87,6 +92,10 @@ public class BottomMenuRecyclerView extends CustomHorizontalRecyclerView {
         setClipToPadding(false);
         setClipChildren(true);
         
+        if (AppearancePreferences.INSTANCE.isAccentColorOnBottomMenu()) {
+            setBackgroundTintList(AppearancePreferences.INSTANCE.getAccentColorStateList());
+        }
+        
         intentFilter.addAction(ACTION_CLOSE_BOTTOM_MENU);
         intentFilter.addAction(ACTION_OPEN_BOTTOM_MENU);
         
@@ -107,19 +116,17 @@ public class BottomMenuRecyclerView extends CustomHorizontalRecyclerView {
         
         post(() -> {
             scrollToPosition(bottomMenuItems.size() - 1);
-    
             ViewGroup.MarginLayoutParams layoutParams = (MarginLayoutParams) getLayoutParams();
-    
+            
             layoutParams.topMargin = getResources().getDimensionPixelOffset(R.dimen.bottom_menu_margin);
             layoutParams.bottomMargin = getResources().getDimensionPixelOffset(R.dimen.bottom_menu_margin);
             layoutParams.leftMargin = getResources().getDimensionPixelOffset(R.dimen.bottom_menu_margin);
             layoutParams.rightMargin = getResources().getDimensionPixelOffset(R.dimen.bottom_menu_margin);
             
             containerHeight = getHeight() + layoutParams.topMargin + layoutParams.bottomMargin;
-            BottomMenuConstants.INSTANCE.setBottomMenuHeight(getHeight() - layoutParams.topMargin - layoutParams.bottomMargin);
-    
+            MainPreferences.INSTANCE.setBottomMenuHeight(getHeight() - layoutParams.topMargin - layoutParams.bottomMargin);
             setLayoutParams(layoutParams);
-    
+            
             if (DevelopmentPreferences.INSTANCE.get(DevelopmentPreferences.centerBottomMenu)) {
                 try {
                     FrameLayout.LayoutParams layoutParams_ = ((FrameLayout.LayoutParams) getLayoutParams());
@@ -180,14 +187,15 @@ public class BottomMenuRecyclerView extends CustomHorizontalRecyclerView {
                             // setTranslationY(dy);
                             setContainerVisibility(dy, true);
                         }
-    
+                        
                         @Override
                         public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
                             super.onScrollStateChanged(recyclerView, newState);
                             if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                                if (getTranslationY() > 0) {
-                                    if (recyclerView.getAdapter().getItemCount() > 6) {
-                                        if (recyclerView.canScrollVertically(1)) {
+                                Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_IDLE");
+                                if (getTranslationY() >= 0) {
+                                    if (recyclerView.getAdapter().getItemCount() > MIN_ITEMS_THRESHOLD) {
+                                        if (recyclerView.canScrollVertically(1 /* down */)) {
                                             animate()
                                                     .translationY(0)
                                                     .setDuration(250)
@@ -203,6 +211,7 @@ public class BottomMenuRecyclerView extends CustomHorizontalRecyclerView {
                                     }
                                 }
                             } else if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                                Log.d(TAG, "onScrollStateChanged: SCROLL_STATE_DRAGGING");
                                 if (getTranslationY() == 0) {
                                     animate()
                                             .translationY(containerHeight)
@@ -213,11 +222,11 @@ public class BottomMenuRecyclerView extends CustomHorizontalRecyclerView {
                             }
                         }
                     });
-    
+                    
                     isScrollListenerAdded = true;
                 }
             }
-    
+            
             isInitialized = true;
         }
     }
@@ -282,6 +291,15 @@ public class BottomMenuRecyclerView extends CustomHorizontalRecyclerView {
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(broadcastReceiver);
+    }
+    
+    @Override
+    public void onThemeChanged(@NonNull Theme theme, boolean animate) {
+        if (AppearancePreferences.INSTANCE.isAccentColorOnBottomMenu()) {
+            setBackgroundTintList(AppearancePreferences.INSTANCE.getAccentColorStateList());
+        } else {
+            super.onThemeChanged(theme, animate);
+        }
     }
     
     public void setContainerVisibility(int dy, boolean animate) {

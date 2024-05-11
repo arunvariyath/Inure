@@ -1,5 +1,6 @@
 package app.simple.inure.ui.panels
 
+import android.app.SearchManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageInfo
@@ -19,8 +20,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterTags
 import app.simple.inure.adapters.menus.AdapterMenu
+import app.simple.inure.adapters.viewers.AdapterTags
 import app.simple.inure.apk.parsers.FOSSParser
 import app.simple.inure.apk.utils.PackageUtils.isPackageInstalledAndEnabled
 import app.simple.inure.apk.utils.PackageUtils.isSplitApk
@@ -49,6 +50,7 @@ import app.simple.inure.dialogs.action.Uninstaller.Companion.uninstallPackage
 import app.simple.inure.dialogs.action.UpdatesUninstaller.Companion.showUpdatesUninstaller
 import app.simple.inure.dialogs.app.Sure.Companion.newSureInstance
 import app.simple.inure.dialogs.appinfo.FdroidStores.Companion.showFdroidStores
+import app.simple.inure.dialogs.appinfo.SearchBox.Companion.showSearchBox
 import app.simple.inure.dialogs.miscellaneous.StoragePermission
 import app.simple.inure.dialogs.miscellaneous.StoragePermission.Companion.showStoragePermissionDialog
 import app.simple.inure.dialogs.tags.AddTag.Companion.showAddTagDialog
@@ -56,6 +58,7 @@ import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.factories.panels.PackageInfoFactory
 import app.simple.inure.glide.util.ImageLoader.loadAPKIcon
 import app.simple.inure.glide.util.ImageLoader.loadAppIcon
+import app.simple.inure.interfaces.appinfo.SearchBoxCallbacks
 import app.simple.inure.interfaces.fragments.SureCallbacks
 import app.simple.inure.popups.tags.PopupTagMenu
 import app.simple.inure.preferences.AccessibilityPreferences
@@ -64,7 +67,6 @@ import app.simple.inure.preferences.ConfigurationPreferences
 import app.simple.inure.preferences.DevelopmentPreferences
 import app.simple.inure.preferences.TrialPreferences
 import app.simple.inure.ui.editor.NotesEditor
-import app.simple.inure.ui.installer.Installer
 import app.simple.inure.ui.subpanels.TaggedApps
 import app.simple.inure.ui.viewers.Activities
 import app.simple.inure.ui.viewers.Boot
@@ -84,14 +86,13 @@ import app.simple.inure.ui.viewers.SharedLibs
 import app.simple.inure.ui.viewers.Trackers
 import app.simple.inure.ui.viewers.UsageStatistics
 import app.simple.inure.ui.viewers.UsageStatisticsGraph
-import app.simple.inure.ui.viewers.XMLViewerTextView
-import app.simple.inure.ui.viewers.XMLViewerWebView
+import app.simple.inure.ui.viewers.XML
+import app.simple.inure.ui.viewers.XMLWebView
 import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.FileUtils.toFile
 import app.simple.inure.util.InfoStripUtils.getAppInfo
 import app.simple.inure.util.MarketUtils
 import app.simple.inure.util.PermissionUtils.checkStoragePermission
-import app.simple.inure.util.ViewUtils
 import app.simple.inure.util.ViewUtils.gone
 import app.simple.inure.util.ViewUtils.visible
 import app.simple.inure.viewmodels.panels.AppInfoMenuViewModel
@@ -219,9 +220,9 @@ class AppInfo : ScopedFragment() {
                     batteryOptimizationSwitch.isChecked = it.isOptimized
 
                     if (it.isOptimized) {
-                        batteryOptimizationState.setTextWithSlideAnimation(getString(R.string.optimized), 250L, ViewUtils.RIGHT)
+                        batteryOptimizationState.setTextWithAnimation(getString(R.string.optimized), 250L)
                     } else {
-                        batteryOptimizationState.setTextWithSlideAnimation(getString(R.string.not_optimized), 250L, ViewUtils.LEFT)
+                        batteryOptimizationState.setTextWithAnimation(getString(R.string.not_optimized), 250L)
                     }
 
                     batteryOptimizationSwitch.setOnSwitchCheckedChangeListener { isChecked ->
@@ -278,10 +279,10 @@ class AppInfo : ScopedFragment() {
                     when (source) {
                         R.string.manifest -> {
                             if (DevelopmentPreferences.get(DevelopmentPreferences.isWebViewXmlViewer)) {
-                                openFragmentArc(XMLViewerWebView.newInstance(
+                                openFragmentArc(XMLWebView.newInstance(
                                         packageInfo, "AndroidManifest.xml"), icon, "manifest")
                             } else {
-                                openFragmentArc(XMLViewerTextView.newInstance(
+                                openFragmentArc(XML.newInstance(
                                         packageInfo, true, "AndroidManifest.xml"), icon, "manifest")
                             }
                         }
@@ -504,9 +505,9 @@ class AppInfo : ScopedFragment() {
                         R.string.preferences -> {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                                 if (packageInfo.packageName == requireContext().packageName) {
-                                    openFragmentArc(Preferences.newInstance(), icon, "preferences")
+                                    openFragmentArc(Preferences.newInstance(), icon, Preferences.TAG)
                                 } else {
-                                    try {
+                                    runCatching {
                                         requirePackageManager().queryIntentActivities(Intent(Intent.ACTION_APPLICATION_PREFERENCES), 0)
                                             .forEach {
                                                 if (it.activityInfo.packageName == packageInfo.packageName) {
@@ -515,10 +516,38 @@ class AppInfo : ScopedFragment() {
                                                     })
                                                 }
                                             }
-                                    } catch (e: SecurityException) {
-                                        showWarning(e.message ?: getString(R.string.error), goBack = false)
+                                    }.onFailure {
+                                        showWarning(it.message ?: getString(R.string.error), goBack = false)
                                     }
                                 }
+                            }
+                        }
+
+                        R.string.search -> {
+                            childFragmentManager.showSearchBox(SearchBoxCallbacks { query ->
+                                runCatching {
+                                    requirePackageManager().queryIntentActivities(Intent(Intent.ACTION_SEARCH), 0)
+                                        .forEach {
+                                            if (it.activityInfo.packageName == packageInfo.packageName) {
+                                                startActivity(Intent(Intent.ACTION_SEARCH).apply {
+                                                    setClassName(packageInfo.packageName, it.activityInfo.name)
+                                                    putExtra(SearchManager.QUERY, query)
+                                                })
+                                            }
+                                        }
+                                }.onFailure {
+                                    showWarning(it.message ?: getString(R.string.error), goBack = false)
+                                }
+                            })
+                        }
+
+                        R.string.manage_space -> {
+                            runCatching {
+                                startActivity(Intent().apply {
+                                    setClassName(packageInfo.packageName, packageInfo.applicationInfo.manageSpaceActivityName)
+                                })
+                            }.onFailure {
+                                showWarning(it.message ?: getString(R.string.error))
                             }
                         }
                     }
@@ -582,7 +611,11 @@ class AppInfo : ScopedFragment() {
                         }
 
                         R.string.play_store -> {
-                            MarketUtils.openAppOnPlayStore(requireContext(), packageInfo.packageName)
+                            try {
+                                MarketUtils.openAppOnPlayStore(requireContext(), packageInfo.packageName)
+                            } catch (e: Exception) {
+                                showWarning(e.message ?: getString(R.string.error))
+                            }
                         }
 
                         R.string.amazon -> {
@@ -767,5 +800,7 @@ class AppInfo : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "app_info"
     }
 }

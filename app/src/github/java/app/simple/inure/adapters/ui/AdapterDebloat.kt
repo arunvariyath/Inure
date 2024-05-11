@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import app.simple.inure.R
 import app.simple.inure.apk.utils.PackageUtils.isInstalled
+import app.simple.inure.constants.DebloatSortConstants
 import app.simple.inure.constants.SortConstant
 import app.simple.inure.decorations.overscroll.VerticalListViewHolder
 import app.simple.inure.decorations.ripple.DynamicRippleConstraintLayout
@@ -19,6 +20,7 @@ import app.simple.inure.interfaces.parsers.LinkCallbacks
 import app.simple.inure.models.Bloat
 import app.simple.inure.preferences.DebloatPreferences
 import app.simple.inure.sort.DebloatSort
+import app.simple.inure.util.AdapterUtils
 import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.FileUtils.toFile
 import app.simple.inure.util.IntentHelper.asUri
@@ -27,7 +29,7 @@ import app.simple.inure.util.RecyclerViewUtils
 import app.simple.inure.util.StringUtils.appendFlag
 import app.simple.inure.util.TextViewUtils.makeLinksClickable
 
-class AdapterDebloat(private val bloats: ArrayList<Bloat>) : RecyclerView.Adapter<VerticalListViewHolder>() {
+class AdapterDebloat(private val bloats: ArrayList<Bloat>, private val header: Boolean = true, private val keyword: String = "") : RecyclerView.Adapter<VerticalListViewHolder>() {
 
     private var adapterDebloatCallback: AdapterDebloatCallback? = null
     private var isLoading = false
@@ -47,17 +49,30 @@ class AdapterDebloat(private val bloats: ArrayList<Bloat>) : RecyclerView.Adapte
     }
 
     override fun onBindViewHolder(holder: VerticalListViewHolder, position: Int) {
-        val pos = holder.bindingAdapterPosition.minus(1)
+        val pos = if (header) {
+            holder.bindingAdapterPosition.minus(1)
+        } else {
+            holder.bindingAdapterPosition
+        }
+
         when (holder) {
             is Holder -> {
                 holder.name.text = bloats[pos].packageInfo.applicationInfo.name
                 holder.name.setWarningIcon(isWarning(bloats[pos]))
                 holder.packageName.text = bloats[pos].packageInfo.packageName
                 holder.flags.setBloatFlags(bloats[pos])
+                holder.checkBox.isChecked = bloats[pos].isSelected
+
+                if (bloats[pos].shouldHighlightBloat()) {
+                    holder.container.setWarningBackground(bloats[pos].bloatWarningColor)
+                } else {
+                    holder.container.setDefaultBackground(false)
+                }
+
                 holder.desc.makeLinksClickable(bloats[pos].description.trim(), LinkCallbacks { url, _ ->
                     url?.asUri()?.openInBrowser(holder.desc.context)
                 })
-                holder.checkBox.isChecked = bloats[pos].isSelected
+
                 holder.icon.loadAppIcon(
                         bloats[pos].packageInfo.packageName,
                         bloats[pos].packageInfo.applicationInfo.enabled,
@@ -66,7 +81,9 @@ class AdapterDebloat(private val bloats: ArrayList<Bloat>) : RecyclerView.Adapte
                 holder.checkBox.setOnCheckedChangeListener {
                     bloats[pos].isSelected = it
                     adapterDebloatCallback?.onBloatSelected(bloats[pos])
-                    notifyItemChanged(0) // Header
+                    if (header) {
+                        notifyItemChanged(0) // Header
+                    }
                 }
 
                 holder.container.setOnClickListener {
@@ -76,6 +93,13 @@ class AdapterDebloat(private val bloats: ArrayList<Bloat>) : RecyclerView.Adapte
                 holder.container.setOnLongClickListener {
                     adapterDebloatCallback?.onBloatLongPressed(bloats[pos])
                     true
+                }
+
+                if (keyword.isNotEmpty()) {
+                    AdapterUtils.searchHighlighter(holder.name, keyword)
+                    AdapterUtils.searchHighlighter(holder.packageName, keyword)
+                    AdapterUtils.searchHighlighter(holder.flags, keyword)
+                    AdapterUtils.searchHighlighter(holder.desc, keyword)
                 }
             }
             is Header -> {
@@ -126,11 +150,15 @@ class AdapterDebloat(private val bloats: ArrayList<Bloat>) : RecyclerView.Adapte
     }
 
     override fun getItemCount(): Int {
-        return bloats.size.plus(1)
+        return if (header) {
+            bloats.size.plus(1)
+        } else {
+            bloats.size
+        }
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (position == 0) {
+        return if (header && position == 0) {
             RecyclerViewUtils.TYPE_HEADER
         } else {
             RecyclerViewUtils.TYPE_ITEM
@@ -234,24 +262,190 @@ class AdapterDebloat(private val bloats: ArrayList<Bloat>) : RecyclerView.Adapte
         }
     }
 
+    private fun Bloat.shouldHighlightBloat(): Boolean {
+        return when (this.removal.method) {
+            Removal.ADVANCED.method -> {
+                DebloatPreferences.getAdvancedHighlight()
+            }
+            Removal.EXPERT.method -> {
+                DebloatPreferences.getExpertHighlight()
+            }
+            Removal.RECOMMENDED.method -> {
+                DebloatPreferences.getRecommendedHighlight()
+            }
+            Removal.UNLISTED.method -> {
+                DebloatPreferences.getUnlistedHighlight()
+            }
+            Removal.UNSAFE.method -> {
+                DebloatPreferences.getUnsafeHighlight()
+            }
+            else -> {
+                false
+            }
+        }
+    }
+
     private fun isWarning(bloat: Bloat): Boolean {
         return bloat.removal.method == Removal.UNSAFE.method || bloat.removal.method == Removal.UNLISTED.method
     }
 
-    fun updateSelections() {
-        when {
-            bloats.any { it.isSelected.invert() } -> {
-                for (i in bloats.indices) {
-                    bloats[i].isSelected = true
-                    notifyItemChanged(i.plus(1))
+    fun updateSelections(mode: Int) {
+        when (mode) {
+            DebloatSortConstants.RECOMMENDED -> {
+                when {
+                    bloats.filter { it.removal.method == Removal.RECOMMENDED.method }.any {
+                        it.removal.method == Removal.RECOMMENDED.method && it.isSelected.invert()
+                    } -> {
+                        deselectAny()
+
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.RECOMMENDED.method) {
+                                bloats[i].isSelected = true
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
+                    bloats.filter { it.removal.method == Removal.RECOMMENDED.method }.all {
+                        it.removal.method == Removal.RECOMMENDED.method && it.isSelected
+                    } -> {
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.RECOMMENDED.method) {
+                                bloats[i].isSelected = false
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
                 }
             }
-            bloats.all { it.isSelected } -> {
-                for (i in bloats.indices) {
-                    bloats[i].isSelected = false
-                    notifyItemChanged(i.plus(1))
+            DebloatSortConstants.ADVANCED -> {
+                when {
+                    bloats.filter { it.removal.method == Removal.ADVANCED.method }.any {
+                        it.removal.method == Removal.ADVANCED.method && it.isSelected.invert()
+                    } -> {
+                        deselectAny()
+
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.ADVANCED.method) {
+                                bloats[i].isSelected = true
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
+                    bloats.filter { it.removal.method == Removal.ADVANCED.method }.all {
+                        it.removal.method == Removal.ADVANCED.method && it.isSelected
+                    } -> {
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.ADVANCED.method) {
+                                bloats[i].isSelected = false
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
                 }
             }
+            DebloatSortConstants.EXPERT -> {
+                when {
+                    bloats.filter { it.removal.method == Removal.EXPERT.method }.any {
+                        it.removal.method == Removal.EXPERT.method && it.isSelected.invert()
+                    } -> {
+                        deselectAny()
+
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.EXPERT.method) {
+                                bloats[i].isSelected = true
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
+                    bloats.filter { it.removal.method == Removal.EXPERT.method }.all {
+                        it.removal.method == Removal.EXPERT.method && it.isSelected
+                    } -> {
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.EXPERT.method) {
+                                bloats[i].isSelected = false
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
+                }
+            }
+            DebloatSortConstants.UNSAFE -> {
+                when {
+                    bloats.filter { it.removal.method == Removal.UNSAFE.method }.any {
+                        it.removal.method == Removal.UNSAFE.method && it.isSelected.invert()
+                    } -> {
+                        deselectAny()
+
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.UNSAFE.method) {
+                                bloats[i].isSelected = true
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
+                    bloats.filter { it.removal.method == Removal.UNSAFE.method }.all {
+                        it.removal.method == Removal.UNSAFE.method && it.isSelected
+                    } -> {
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.UNSAFE.method) {
+                                bloats[i].isSelected = false
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
+                }
+            }
+            DebloatSortConstants.UNLISTED -> {
+                when {
+                    bloats.filter { it.removal.method == Removal.UNLISTED.method }.any {
+                        it.removal.method == Removal.UNLISTED.method && it.isSelected.invert()
+                    } -> {
+                        deselectAny()
+
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.UNLISTED.method) {
+                                bloats[i].isSelected = true
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
+                    bloats.filter { it.removal.method == Removal.UNLISTED.method }.all {
+                        it.removal.method == Removal.UNLISTED.method && it.isSelected
+                    } -> {
+                        for (i in bloats.indices) {
+                            if (bloats[i].removal.method == Removal.UNLISTED.method) {
+                                bloats[i].isSelected = false
+                                notifyItemChanged(i.plus(1))
+                            }
+                        }
+                    }
+                }
+            }
+            DebloatSortConstants.ALL_REMOVAL -> {
+                when {
+                    bloats.any { it.isSelected.invert() } -> {
+                        for (i in bloats.indices) {
+                            bloats[i].isSelected = true
+                            notifyItemChanged(i.plus(1))
+                        }
+                    }
+                    bloats.all { it.isSelected } -> {
+                        for (i in bloats.indices) {
+                            bloats[i].isSelected = false
+                            notifyItemChanged(i.plus(1))
+                        }
+                    }
+                }
+            }
+        }
+
+        notifyItemChanged(0) // Header
+    }
+
+    private fun deselectAny() {
+        for (i in bloats.indices) {
+            bloats[i].isSelected = false
+            notifyItemChanged(i.plus(1))
         }
     }
 

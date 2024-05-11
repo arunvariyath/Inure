@@ -15,10 +15,10 @@ import app.simple.inure.apk.utils.PackageData
 import app.simple.inure.apk.utils.PackageData.getInstallerDir
 import app.simple.inure.apk.utils.PackageUtils.getPackageArchiveInfo
 import app.simple.inure.extensions.viewmodels.RootShizukuViewModel
+import app.simple.inure.helpers.ShizukuServiceHelper
 import app.simple.inure.models.User
 import app.simple.inure.preferences.ConfigurationPreferences
-import app.simple.inure.shizuku.Shell.Command
-import app.simple.inure.shizuku.ShizukuUtils
+import app.simple.inure.shizuku.PackageInstaller
 import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.FileUtils
 import app.simple.inure.util.FileUtils.escapeSpecialCharactersForUnixPath
@@ -177,52 +177,52 @@ class InstallerViewModel(application: Application, private val uri: Uri?, val fi
                 Shell.cmd("run-as ${application.packageName}").exec()
 
                 val totalSizeOfAllApks = files!!.getLength()
-                Log.d("Installer", "Total size of all apks: $totalSizeOfAllApks")
+                Log.d(TAG, "Total size of all apks: $totalSizeOfAllApks")
                 val sessionId = with(Shell.cmd("${installCommand()} $totalSizeOfAllApks").exec()) {
-                    Log.d("Installer", "Output: $out")
+                    Log.d(TAG, "Output: $out")
                     with(out[0]) {
                         substringAfter("[").substringBefore("]").toInt()
                     }
                 }
 
-                Log.d("Installer", "Session id: $sessionId")
+                Log.d(TAG, "Session id: $sessionId")
                 for (file in files!!) {
                     if (file.exists() && file.name.endsWith(".apk")) {
                         val size = file.length()
-                        Log.d("Installer", "Size of ${file.name}: $size")
+                        Log.d(TAG, "Size of ${file.name}: $size")
                         val splitName = file.name.substringBeforeLast(".")
-                        Log.d("Installer", "Split name: $splitName")
+                        Log.d(TAG, "Split name: $splitName")
                         val idx = files?.indexOf(file)
-                        Log.d("Installer", "Index: $idx")
+                        Log.d(TAG, "Index: $idx")
 
                         val path = file.absolutePath.escapeSpecialCharactersForUnixPath()
-                        Log.d("Installer", "Path: $path")
+                        Log.d(TAG, "Path: $path")
 
                         Shell.cmd("pm install-write -S $size $sessionId $idx $path").exec().let {
-                            Log.d("Installer", "Output: ${it.out}")
-                            Log.d("Installer", "Error: ${it.err}")
+                            Log.d(TAG, "Output: ${it.out}")
+                            Log.d(TAG, "Error: ${it.err}")
                         }
                     }
                 }
 
                 Shell.cmd("pm install-commit $sessionId").exec().let { result ->
                     if (result.isSuccess) {
-                        Log.d("Installer", "Output: ${result.out}")
-                        Log.d("Installer", "Error: ${result.err}")
+                        Log.d(TAG, "Output: ${result.out}")
+                        Log.d(TAG, "Error: ${result.err}")
                         success.postValue((0..50).random())
 
-                        Log.d("Installer", "Setting installer to ${application.packageName} for ${packageInfo.value!!.packageName}")
+                        Log.d(TAG, "Setting installer to ${application.packageName} for ${packageInfo.value!!.packageName}")
                         Shell.cmd("pm set-installer ${packageInfo.value!!.packageName} ${application.packageName}").exec().let {
                             if (it.isSuccess) {
-                                Log.d("Installer", "Installer set to ${application.packageName} for ${packageInfo.value!!.packageName}")
+                                Log.d(TAG, "Installer set to ${application.packageName} for ${packageInfo.value!!.packageName}")
                             } else {
-                                Log.d("Installer", "Unable to set installer to ${application.packageName} for ${packageInfo.value!!.packageName}")
-                                Log.e("Installer", "Output: ${it.out}")
+                                Log.d(TAG, "Unable to set installer to ${application.packageName} for ${packageInfo.value!!.packageName}")
+                                Log.e(TAG, "Output: ${it.out}")
                             }
                         }
                     } else {
-                        Log.d("Installer", "Output: ${result.out}")
-                        Log.d("Installer", "Error: ${result.err}")
+                        Log.d(TAG, "Output: ${result.out}")
+                        Log.d(TAG, "Error: ${result.err}")
                         postWarning(result.out.joinToString())
                     }
                 }
@@ -231,112 +231,6 @@ class InstallerViewModel(application: Application, private val uri: Uri?, val fi
                     postWarning(e.message!!)
                 } else {
                     postError(e)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                postError(e)
-            }
-        }
-    }
-
-    private fun shizukuInstall() {
-        viewModelScope.launch(Dispatchers.IO) {
-            Log.d("Installer", "Shizuku install")
-
-            try {
-                val totalSizeOfAllApks = files!!.getLength()
-                Log.d("Installer", "Total size of all apks: $totalSizeOfAllApks")
-                val sessionId = with(ShizukuUtils.execInternal(
-                        Command("pm install-create -S $totalSizeOfAllApks"), null)) {
-                    Log.d("Installer", "Output: $out")
-                    with(out) {
-                        if (isNotEmpty()) {
-                            "${substringAfter("[").substringBefore("]").toInt()}"
-                        } else {
-                            postWarning("ERR: unable to get session id")
-                            return@launch
-                        }
-                    }
-                }
-
-                /**
-                 * Install base apk
-                 */
-                context.contentResolver.openInputStream(
-                        FileProvider.getUriForFile(applicationContext(), "${applicationContext().packageName}.provider", baseApk!!)).use { inputStream ->
-                    ShizukuUtils.execInternal(Command("pm install-write -S ${baseApk?.length()} $sessionId base-"), inputStream).let {
-                        Log.d("Installer", "Output: ${it.out}")
-                        Log.d("Installer", "Error: ${it.err}")
-                    }
-                }
-
-                Log.d("Installer", "Session id: $sessionId")
-                for (file in splitApkFiles!!) {
-                    if (file.exists() && file.name.endsWith(".apk") && splitApkFiles!!.size >= 1) {
-                        val size = file.length()
-                        Log.d("Installer", "Size of ${file.name}: $size")
-                        val splitName = file.name.substringBeforeLast(".")
-                        Log.d("Installer", "Split name: $splitName")
-                        val idx = splitApkFiles?.indexOf(file)
-                        Log.d("Installer", "Index: $idx")
-                        val path = file.absolutePath.escapeSpecialCharactersForUnixPath()
-                        Log.d("Installer", "Path: $path")
-
-                        // create uri from file
-                        val uri = FileProvider.getUriForFile(applicationContext(),
-                                                             "${applicationContext().packageName}.provider", file)
-
-                        /**
-                         * Install split apks
-                         */
-                        context.contentResolver.openInputStream(uri).use { inputStream ->
-                            ShizukuUtils.execInternal(
-                                    Command("pm install-write -S $size $sessionId $splitName-"), inputStream).let {
-                                Log.d("Installer", "Output: ${it.out}")
-                                Log.d("Installer", "Error: ${it.err}")
-                            }
-                        }
-                    } else { // Not a split apk
-                        val size = file.length()
-                        Log.d("Installer", "Size of ${file.name}: $size")
-                        val path = file.absolutePath.escapeSpecialCharactersForUnixPath()
-                        Log.d("Installer", "Path: $path")
-
-                        // create uri from file
-                        val uri = FileProvider.getUriForFile(applicationContext(),
-                                                             "${applicationContext().packageName}.provider", file)
-
-                        context.contentResolver.openInputStream(uri).use { inputStream ->
-                            ShizukuUtils.execInternal(
-                                    Command("pm install-write -S $size $sessionId base-"), inputStream).let {
-                                Log.d("Installer", "Output: ${it.out}")
-                                Log.d("Installer", "Error: ${it.err}")
-                            }
-                        }
-                    }
-                }
-
-                ShizukuUtils.execInternal(Command("pm install-commit $sessionId"), null).let { result ->
-                    if (result.isSuccess) {
-                        Log.d("Installer", "Output: ${result.out}")
-                        Log.d("Installer", "Error: ${result.err}")
-                        success.postValue((0..50).random())
-
-                        Log.d("Installer", "Setting installer to ${application.packageName} for ${packageInfo.value!!.packageName}")
-                        ShizukuUtils.execInternal(Command("pm set-installer ${packageInfo.value!!.packageName} ${application.packageName}"), null)
-                            .let {
-                                if (it.isSuccess) {
-                                    Log.d("Installer", "Installer set to ${application.packageName} for ${packageInfo.value!!.packageName}")
-                                } else {
-                                    Log.d("Installer", "Unable to set installer to ${application.packageName} for ${packageInfo.value!!.packageName}")
-                                    Log.e("Installer", "Output: ${it.out}")
-                                }
-                            }
-                    } else {
-                        Log.d("Installer", "Output: ${result.out}")
-                        Log.d("Installer", "Error: ${result.err}")
-                        postWarning(result.out)
-                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -363,8 +257,28 @@ class InstallerViewModel(application: Application, private val uri: Uri?, val fi
         packageManagerInstall()
     }
 
-    override fun onShizukuCreated() {
-        shizukuInstall()
+    override fun onShizukuCreated(shizukuServiceHelper: ShizukuServiceHelper) {
+        viewModelScope.launch(Dispatchers.IO) {
+            Log.d(TAG, "Shizuku install")
+
+            try {
+                val uris = files!!.map { file ->
+                    FileProvider.getUriForFile(applicationContext(), "${applicationContext().packageName}.provider", file)
+                }
+
+                val packageInstaller = PackageInstaller()
+                val shizukuInstall = packageInstaller.install(uris, applicationContext())
+
+                if (shizukuInstall.status == android.content.pm.PackageInstaller.STATUS_SUCCESS) {
+                    success.postValue((0..50).random())
+                } else {
+                    postWarning("ERR: ${shizukuInstall.status} : ${shizukuInstall.message}")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                postWarning(e.message ?: "Unknown error")
+            }
+        }
     }
 
     override fun onShizukuDenied() {
@@ -384,11 +298,13 @@ class InstallerViewModel(application: Application, private val uri: Uri?, val fi
     }
 
     private fun installCommand(): String {
-        // Check if greater than nougat
+        /**
+         * Users feature is only available after Nougat
+         */
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            "pm install-create --user ${user?.id ?: getCurrentUser()} -S"
+            "pm install-create -i ${application.packageName} --user ${user?.id ?: getCurrentUser()} -S"
         } else {
-            "pm install-create -i -S"
+            "pm install-create -i ${application.packageName} -S"
         }
     }
 
@@ -403,10 +319,10 @@ class InstallerViewModel(application: Application, private val uri: Uri?, val fi
                         success.postValue((0..50).random())
                     } else {
                         postWarning(it.err.joinToString())
-                        Log.e("Installer", "Error: ${it.err}")
+                        Log.e(TAG, "Error: ${it.err}")
                     }
 
-                    Log.d("Installer", "Output: ${it.out}")
+                    Log.d(TAG, "Output: ${it.out}")
                 }
             }.onFailure {
                 postWarning(it.message ?: "Unknown error")
@@ -414,25 +330,7 @@ class InstallerViewModel(application: Application, private val uri: Uri?, val fi
         }
     }
 
-    fun installAnywayShizuku() {
-        viewModelScope.launch(Dispatchers.IO) {
-            kotlin.runCatching {
-                val path = packageInfo.value!!.applicationInfo?.sourceDir?.escapeSpecialCharactersForUnixPath()
-
-                ShizukuUtils.execInternal(Command("pm install --bypass-low-target-sdk-block $path"), null).let {
-                    if (it.isSuccess) {
-                        success.postValue((0..50).random())
-                    } else {
-                        postWarning(it.out)
-                        Log.e("Installer", "Error: ${it.err}")
-                        Log.e("Installer", "Output: ${it.out}")
-                    }
-
-                    Log.d("Installer", "Output: ${it.out}")
-                }
-            }.onFailure {
-                postWarning(it.message ?: "Unknown error")
-            }
-        }
+    companion object {
+        private const val TAG = "InstallerViewModel"
     }
 }

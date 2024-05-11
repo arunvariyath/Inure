@@ -5,6 +5,8 @@ import android.content.pm.PackageManager
 import android.content.pm.PermissionInfo
 import android.os.Build
 import app.simple.inure.R
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 object PermissionUtils {
 
@@ -51,6 +53,20 @@ object PermissionUtils {
                 else -> false
             }
         }
+    }
+
+    fun getPermissionMap(): HashMap<String, String> {
+        val bufferedReader = BufferedReader(
+                InputStreamReader(PermissionUtils::class.java.getResourceAsStream("/permissions.txt")))
+        val permissionList = bufferedReader.readLines()
+        val map = HashMap<String, String>()
+
+        permissionList.forEach {
+            val shortName = it.substring(it.lastIndexOf(".") + 1)
+            map[shortName] = it
+        }
+
+        return map
     }
 
     fun PermissionInfo.isException(): Boolean {
@@ -129,9 +145,15 @@ object PermissionUtils {
         return protection
     }
 
-    fun Context.getPermissionDescription(name: String): String {
+    fun Context.getPermissionDescription(name: String?): String {
         kotlin.runCatching {
-            return name.getPermissionInfo(this)!!.loadDescription(packageManager).toString()
+            val desc = name!!.getPermissionInfo(this)!!.loadDescription(packageManager)
+
+            return if (desc.isNullOrEmpty()) {
+                getString(R.string.desc_not_available)
+            } else {
+                desc.toString()
+            }
         }.getOrElse {
             return getString(R.string.desc_not_available)
         }

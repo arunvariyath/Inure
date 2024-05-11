@@ -3,15 +3,16 @@ package app.simple.inure.viewmodels.panels
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import app.simple.inure.apk.utils.PackageUtils.isInstalled
 import app.simple.inure.constants.DebloatSortConstants
 import app.simple.inure.constants.SortConstant
+import app.simple.inure.constants.Warnings
 import app.simple.inure.enums.Removal
 import app.simple.inure.extensions.viewmodels.RootShizukuViewModel
+import app.simple.inure.helpers.ShizukuServiceHelper
 import app.simple.inure.models.Bloat
 import app.simple.inure.models.PackageStateResult
 import app.simple.inure.preferences.ConfigurationPreferences
@@ -30,6 +31,13 @@ import java.util.stream.Collectors
 class DebloatViewModel(application: Application) : RootShizukuViewModel(application) {
 
     private var currentMethod: String = METHOD_DISABLE // should change during runtime
+    private var uadList: ArrayList<Bloat> = ArrayList()
+
+    var keyword: String = DebloatPreferences.getSearchKeyword()
+        set(value) {
+            field = value
+            loadSearchResults(value)
+        }
 
     private val bloatList: MutableLiveData<ArrayList<Bloat>> by lazy {
         MutableLiveData<ArrayList<Bloat>>()
@@ -39,12 +47,32 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
         MutableLiveData<ArrayList<PackageStateResult>>()
     }
 
+    private val searchedBloatList: MutableLiveData<ArrayList<Bloat>> by lazy {
+        MutableLiveData<ArrayList<Bloat>>().also {
+            loadSearchResults(keyword)
+        }
+    }
+
+    private val selectedBloatList: MutableLiveData<ArrayList<Bloat>> by lazy {
+        MutableLiveData<ArrayList<Bloat>>().also {
+            loadSelectedBloatList()
+        }
+    }
+
     fun getBloatList(): LiveData<ArrayList<Bloat>> {
         return bloatList
     }
 
     fun getDebloatedPackages(): LiveData<ArrayList<PackageStateResult>> {
         return debloatedPackages
+    }
+
+    fun getSearchedBloatList(): LiveData<ArrayList<Bloat>> {
+        return searchedBloatList
+    }
+
+    fun getSelectedBloatList(): LiveData<ArrayList<Bloat>> {
+        return selectedBloatList
     }
 
     fun shouldShowLoader(): Boolean {
@@ -57,7 +85,7 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
 
     private fun parseUADList() {
         viewModelScope.launch(Dispatchers.IO) {
-            val uadList = getUADList()
+            getUADList()
             val apps = getInstalledApps() + getUninstalledApps()
             var bloats = ArrayList<Bloat>()
 
@@ -101,23 +129,100 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
         }
     }
 
+    private fun loadSearchResults(keyword: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (keyword.isEmpty()) {
+                searchedBloatList.postValue(arrayListOf())
+                return@launch
+            }
+
+            getUADList()
+            val apps = getInstalledApps() + getUninstalledApps()
+            var bloats = ArrayList<Bloat>()
+
+            uadList.parallelStream().forEach { bloat ->
+                synchronized(bloats) {
+                    apps.forEach { app ->
+                        if (app.packageName == bloat.id) {
+                            bloat.packageInfo = app
+                            bloats.add(bloat)
+                        }
+                    }
+                }
+            }
+
+            // Filter system or user apps
+            when (DebloatPreferences.getApplicationType()) {
+                SortConstant.SYSTEM -> {
+                    bloats = bloats.parallelStream().filter { b ->
+                        b.packageInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
+                    }.collect(Collectors.toList()) as ArrayList<Bloat>
+                }
+                SortConstant.USER -> {
+                    bloats = bloats.parallelStream().filter { b ->
+                        b.packageInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM == 0
+                    }.collect(Collectors.toList()) as ArrayList<Bloat>
+                }
+            }
+
+            // Apply filters
+            bloats = bloats.applyListFilter()
+            bloats = bloats.applyMethodsFilter()
+            bloats = bloats.applyStateFilter()
+
+            // Remove duplicates
+            bloats = bloats.distinctBy { it.id } as ArrayList<Bloat>
+
+            // Sort the bloat list
+            bloats.getSortedList()
+
+            bloats = bloats.parallelStream().filter { bloat ->
+                bloat.packageInfo.applicationInfo.name.contains(keyword, true) ||
+                        bloat.packageInfo.applicationInfo.packageName.contains(keyword, true) ||
+                        bloat.description.contains(keyword, true) ||
+                        bloat.list.contains(keyword, true) ||
+                        bloat.dependencies.contains(keyword) ||
+                        bloat.neededBy.contains(keyword) ||
+                        bloat.labels.contains(keyword)
+            }.collect(Collectors.toList()) as ArrayList<Bloat>
+
+            searchedBloatList.postValue(bloats)
+        }
+    }
+
+    fun loadSelectedBloatList() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val selectedBloats = ArrayList<Bloat>()
+            bloatList.value?.forEach {
+                if (it.isSelected) {
+                    selectedBloats.add(it)
+                }
+            }
+
+            selectedBloatList.postValue(selectedBloats)
+        }
+    }
+
     override fun onAppsLoaded(apps: ArrayList<PackageInfo>) {
         super.onAppsLoaded(apps)
         parseUADList()
     }
 
     /**
-     * {
-     *     "id": "com.android.package",
-     *     "list": "Oem",
-     *     "description": "desc \n",
+     * "com.android.package": {
+     *     "list": "",
+     *     "description": "",
      *     "dependencies": [],
      *     "neededBy": [],
      *     "labels": [],
-     *     "removal": "Recommended"
-     *   },
+     *     "removal": "Advanced"
+     *  }
      */
     private fun getUADList(): ArrayList<Bloat> {
+        if (uadList.isNotEmpty()) {
+            return uadList
+        }
+
         val bufferedReader = BufferedReader(InputStreamReader(DebloatViewModel::class.java.getResourceAsStream(UAD_FILE_NAME)))
         val stringBuilder = StringBuilder()
         var line: String?
@@ -125,23 +230,21 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
             stringBuilder.append(line)
         }
         bufferedReader.close()
-
         val json = stringBuilder.toString()
-        val jsonArray = org.json.JSONArray(json)
+        val jsonObject = org.json.JSONObject(json)
         val bloats = arrayListOf<Bloat>()
 
-        for (i in 0 until jsonArray.length()) {
-            val jsonObject = jsonArray.getJSONObject(i)
-            val id = jsonObject.getString("id")
-            val list = jsonObject.getString("list")
-            val description = jsonObject.getString("description")
-            val removal = jsonObject.getString("removal")
-            val dependencies = jsonObject.getJSONArray("dependencies")
-            val neededBy = jsonObject.getJSONArray("neededBy")
-            val labels = jsonObject.getJSONArray("labels")
+        jsonObject.keys().forEach { key ->
+            val properties = jsonObject.getJSONObject(key)
+            val list = properties.getString("list")
+            val description = properties.getString("description")
+            val removal = properties.getString("removal")
+            val dependencies = properties.getJSONArray("dependencies")
+            val neededBy = properties.getJSONArray("neededBy")
+            val labels = properties.getJSONArray("labels")
 
             val bloat = Bloat()
-            bloat.id = id
+            bloat.id = key // use the key as the id
             bloat.list = list
             bloat.description = description
             bloat.removal = Removal.valueOf(removal.uppercase())
@@ -164,7 +267,9 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
             bloats.add(bloat)
         }
 
-        return bloats
+        uadList = bloats
+
+        return uadList
     }
 
     fun refreshBloatList() {
@@ -355,6 +460,7 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
 
     private fun startDebloating(method: String) {
         val selectedBloats = ArrayList<Bloat>()
+
         bloatList.value?.forEach {
             if (it.isSelected) {
                 selectedBloats.add(it)
@@ -363,11 +469,9 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
 
         when {
             ConfigurationPreferences.isUsingRoot() -> {
-                Log.d("DebloatViewModel", "startDebloating: Root")
                 debloatRoot(selectedBloats, method)
             }
             ConfigurationPreferences.isUsingShizuku() -> {
-                Log.d("DebloatViewModel", "startDebloating: Shizuku")
                 debloatShizuku(selectedBloats, method)
             }
         }
@@ -378,9 +482,14 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
         startDebloating(currentMethod)
     }
 
-    override fun onShizukuCreated() {
-        super.onShizukuCreated()
+    override fun onShizukuCreated(shizukuServiceHelper: ShizukuServiceHelper) {
+        super.onShizukuCreated(shizukuServiceHelper)
         startDebloating(currentMethod)
+    }
+
+    override fun onShizukuDenied() {
+        super.onShizukuDenied()
+        postWarning(Warnings.SHIZUKU_BINDER_NOT_READY)
     }
 
     private fun debloatRoot(bloats: ArrayList<Bloat>, method: String) {
@@ -409,11 +518,24 @@ class DebloatViewModel(application: Application) : RootShizukuViewModel(applicat
 
             bloats.forEach { bloat ->
                 kotlin.runCatching {
-                    ShizukuUtils.execInternal(app.simple.inure.shizuku.Shell.Command(getCommand(method, user, bloat.id)), null).let { result ->
-                        if (result.isSuccess) {
-                            debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, true))
-                        } else {
-                            debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, false))
+                    when (method) {
+                        METHOD_UNINSTALL -> {
+                            getShizukuService().simpleExecute(getCommand(method, user, bloat.id)).let { result ->
+                                if (result.isSuccess) {
+                                    debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, true))
+                                } else {
+                                    debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, false))
+                                }
+                            }
+                        }
+                        else -> {
+                            kotlin.runCatching {
+                                ShizukuUtils.setAppDisabled(bloat.packageInfo.applicationInfo.enabled, setOf(bloat.packageInfo.packageName))
+                            }.onSuccess {
+                                debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, true))
+                            }.getOrElse {
+                                debloatedPackages.add(PackageStateResult(bloat.packageInfo.applicationInfo.name, bloat.id, false))
+                            }
                         }
                     }
                 }.getOrElse {

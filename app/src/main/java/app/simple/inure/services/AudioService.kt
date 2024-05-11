@@ -10,6 +10,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Binder
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.os.PowerManager
 import android.support.v4.media.MediaMetadataCompat
@@ -118,14 +119,7 @@ class AudioService : Service(),
                     changePlayerState()
                 }
                 ServiceConstants.actionQuitMusicService -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        stopForeground(STOP_FOREGROUND_REMOVE)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        stopForeground(true)
-                    }
-                    stopSelf()
-                    IntentHelper.sendLocalBroadcastIntent(ServiceConstants.actionQuitMusicService, applicationContext)
+                    quitService()
                 }
             }
         }
@@ -156,7 +150,7 @@ class AudioService : Service(),
     override fun onAudioFocusChange(focusChange: Int) {
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
-                if (!mediaPlayer.isPlaying) {
+                if (!isPlaying()) {
                     if (wasPlaying) {
                         play()
                     }
@@ -166,21 +160,20 @@ class AudioService : Service(),
              * Lost focus for an unbounded amount of time: stop playback and release media player
              */
             AudioManager.AUDIOFOCUS_LOSS,
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
-            -> {
-                wasPlaying = mediaPlayer.isPlaying
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                wasPlaying = isPlaying()
 
                 /**
                  * Lost focus for a short time, but we have to stop
                  * playback. We don't release the media player because playback
                  * is likely to resume
                  */
-                if (mediaPlayer.isPlaying) {
+                if (isPlaying()) {
                     pause()
                 }
             }
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK -> {
-                if (mediaPlayer.isPlaying) {
+                if (isPlaying()) {
                     mediaPlayer.setVolume(.1f, .1f)
                 }
             }
@@ -266,13 +259,7 @@ class AudioService : Service(),
             }
 
             override fun onStop() {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    stopForeground(STOP_FOREGROUND_DETACH)
-                } else {
-                    @Suppress("DEPRECATION")
-                    stopForeground(true)
-                }
-                stopSelf()
+                quitService()
             }
 
             override fun onSeekTo(pos: Long) {
@@ -281,6 +268,18 @@ class AudioService : Service(),
 
             override fun onMediaButtonEvent(mediaButtonEvent: Intent): Boolean {
                 return MediaButtonIntentReceiver.handleIntent(this@AudioService, mediaButtonEvent)
+            }
+
+            override fun onCustomAction(action: String?, extras: Bundle?) {
+                when (action) {
+                    ServiceConstants.actionQuitMusicService -> {
+                        quitService()
+                    }
+
+                    else -> {
+                        /* no-op */
+                    }
+                }
             }
         })
 
@@ -296,11 +295,15 @@ class AudioService : Service(),
         mediaSessionCompat?.setPlaybackState(
                 PlaybackStateCompat.Builder()
                     .setState(playbackState, mediaPlayer.currentPosition.toLong(), 1f)
-                    .setActions(PlaybackStateCompat.ACTION_SEEK_TO
-                                        or PlaybackStateCompat.ACTION_PLAY
-                                        or PlaybackStateCompat.ACTION_PAUSE
-                                        or PlaybackStateCompat.ACTION_PLAY_PAUSE
-                                        or PlaybackStateCompat.ACTION_STOP)
+                    .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                                        PlaybackStateCompat.ACTION_SEEK_TO or
+                                        PlaybackStateCompat.ACTION_STOP)
+                    .addCustomAction(
+                            PlaybackStateCompat.CustomAction.Builder(
+                                    ServiceConstants.actionQuitMusicService,
+                                    "Close",
+                                    R.drawable.ic_close
+                            ).build())
                     .build()
         )
     }
@@ -324,13 +327,25 @@ class AudioService : Service(),
                     mediaSessionCompat?.setMetadata(mediaMetadataCompat)
                     createNotificationChannel()
                     showNotification(generateAction(R.drawable.ic_pause, "pause", ServiceConstants.actionPause))
-                    setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+                    setPlayingState()
                     IntentHelper.sendLocalBroadcastIntent(ServiceConstants.actionMetaData, applicationContext)
                 }
             }.getOrElse {
                 IntentHelper.sendLocalBroadcastIntent(ServiceConstants.actionMediaError, applicationContext, it.stackTraceToString())
             }
         }
+    }
+
+    private fun quitService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+
+        IntentHelper.sendLocalBroadcastIntent(ServiceConstants.actionQuitMusicService, applicationContext)
+        stopSelf()
     }
 
     private fun requestAudioFocus(): Boolean {
@@ -366,6 +381,15 @@ class AudioService : Service(),
         mediaPlayer.prepareAsync()
     }
 
+    private fun setPlayingState() {
+        // Make sure the notification state remains consistent and updated
+        if (isPlaying()) {
+            setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        } else {
+            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+        }
+    }
+
     internal fun getProgress(): Int {
         return kotlin.runCatching {
             mediaPlayer.currentPosition
@@ -382,7 +406,7 @@ class AudioService : Service(),
         try {
             if (hasReleased.invert()) {
                 mediaPlayer.seekTo(to)
-                setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+                setPlayingState()
             }
         } catch (e: IllegalStateException) {
             Log.d("AudioService", "IllegalStateException: ${e.message}")
@@ -390,13 +414,13 @@ class AudioService : Service(),
     }
 
     internal fun changePlayerState(): Boolean {
-        if (mediaPlayer.isPlaying) {
+        if (isPlaying()) {
             pause()
         } else {
             play()
         }
 
-        return mediaPlayer.isPlaying
+        return isPlaying()
     }
 
     private fun pause() {
@@ -423,9 +447,9 @@ class AudioService : Service(),
                     updateVolume(-1)
                     if (iVolume == intVolumeMin) {
                         // Pause music
-                        if (mediaPlayer.isPlaying) {
+                        if (isPlaying()) {
                             mediaPlayer.pause()
-                            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+                            setPlayingState()
                             kotlin.runCatching {
                                 showNotification(generateAction(R.drawable.ic_play, "play", ServiceConstants.actionPlay))
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -467,10 +491,10 @@ class AudioService : Service(),
         updateVolume(0)
 
         // Play music
-        if (!mediaPlayer.isPlaying) {
+        if (!isPlaying()) {
             if (requestAudioFocus()) {
                 mediaPlayer.start()
-                setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+                setPlayingState()
                 kotlin.runCatching {
                     showNotification(generateAction(R.drawable.ic_pause, "pause", ServiceConstants.actionPause))
                 }

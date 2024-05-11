@@ -9,8 +9,9 @@ import android.view.ViewGroup
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterDexData
+import app.simple.inure.adapters.viewers.AdapterDexData
 import app.simple.inure.constants.BundleConstants
+import app.simple.inure.constants.Warnings
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.extensions.fragments.SearchBarScopedFragment
 import app.simple.inure.factories.panels.PackageInfoFactory
@@ -29,8 +30,7 @@ class Dexs : SearchBarScopedFragment() {
 
         search = view.findViewById(R.id.search)
         searchBox = view.findViewById(R.id.search_edit_text)
-        title = view.findViewById(R.id.typeFaceTextView2)
-
+        title = view.findViewById(R.id.dex_title)
         recyclerView = view.findViewById(R.id.dexs_recycler_view)
 
         packageInfoFactory = PackageInfoFactory(packageInfo)
@@ -46,13 +46,19 @@ class Dexs : SearchBarScopedFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        if (packageInfo.packageName == "android") {
+            showWarning(Warnings.ANDROID_SYSTEM_DEX_CLASSES)
+        }
+
         dexDataViewModel.getDexClasses().observe(viewLifecycleOwner) {
+            setCount(it.size)
+
             if (recyclerView.adapter.isNull()) {
                 val adapter = AdapterDexData(it, searchBox.text.toString().trim())
 
                 adapter.onDetailsClicked = { dexClass ->
                     openFragmentSlide(
-                            ClassSourceViewer.newInstance(dexClass, packageInfo),
+                            ClassSource.newInstance(dexClass, packageInfo),
                             "class_source_viewer")
                 }
 

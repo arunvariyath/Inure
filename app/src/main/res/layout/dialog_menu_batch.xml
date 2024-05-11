@@ -31,7 +31,11 @@
                 android:padding="@dimen/dialog_padding"
                 android:text="@string/move_selection_on_top"
                 android:textSize="@dimen/info_text_small"
+                android:gravity="center_vertical"
+                android:drawablePadding="5dp"
                 app:appFontStyle="bold"
+                app:drawableEndCompat="@drawable/ic_warning_tiny"
+                app:drawableTintStyle="warning"
                 app:textColorStyle="primary" />
 
             <app.simple.inure.decorations.toggles.Switch
@@ -115,6 +119,14 @@
             android:layout_marginTop="@dimen/popup_item_gap_length"
             android:layout_height="wrap_content"
             android:text="@string/save_selection_profile"
+            android:padding="@dimen/dialog_padding" />
+
+        <app.simple.inure.decorations.ripple.DynamicRippleTextView
+            android:id="@+id/create_selection_from_tags"
+            android:layout_width="match_parent"
+            android:layout_marginTop="@dimen/popup_item_gap_length"
+            android:layout_height="wrap_content"
+            android:text="@string/create_selection_from_tags"
             android:padding="@dimen/dialog_padding" />
 
         <app.simple.inure.decorations.theme.ThemeDivider

@@ -13,7 +13,7 @@ import app.simple.inure.R
 import app.simple.inure.adapters.home.AdapterFOSS
 import app.simple.inure.constants.BottomMenuConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
-import app.simple.inure.dialogs.menus.AppsMenu
+import app.simple.inure.dialogs.app.AppMenu
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.interfaces.adapters.AdapterCallbacks
 import app.simple.inure.viewmodels.panels.HomeViewModel
@@ -39,6 +39,10 @@ class FOSS : ScopedFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        if (homeViewModel.shouldShowFOSSLoader()) {
+            showLoader(manualOverride = true)
+        }
+
         homeViewModel.getFossApps().observe(viewLifecycleOwner) {
             hideLoader()
             postponeEnterTransition()
@@ -61,7 +65,7 @@ class FOSS : ScopedFragment() {
                 }
 
                 override fun onAppLongPressed(packageInfo: PackageInfo, icon: ImageView) {
-                    AppsMenu.newInstance(packageInfo)
+                    AppMenu.newInstance(packageInfo)
                         .show(childFragmentManager, "apps_menu")
                 }
             })
@@ -90,5 +94,7 @@ class FOSS : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "FOSS"
     }
 }

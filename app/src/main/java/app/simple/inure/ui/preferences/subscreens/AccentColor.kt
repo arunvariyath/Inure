@@ -101,7 +101,7 @@ class AccentColor : ScopedFragment() {
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         super.onSharedPreferenceChanged(sharedPreferences, key)
         when (key) {
-            AppearancePreferences.accentColor, AppearancePreferences.isCustomColor -> {
+            AppearancePreferences.ACCENT_COLOR, AppearancePreferences.IS_CUSTOM_COLOR -> {
                 adapterAccentColor.updateAccentColor()
             }
         }
@@ -114,5 +114,7 @@ class AccentColor : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "AccentColor"
     }
 }

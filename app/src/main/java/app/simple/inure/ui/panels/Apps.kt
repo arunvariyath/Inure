@@ -14,17 +14,17 @@ import app.simple.inure.adapters.ui.AdapterApps
 import app.simple.inure.constants.BottomMenuConstants
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
-import app.simple.inure.dialogs.apps.AppsPanelMenu.Companion.newAppsMenuInstance
+import app.simple.inure.dialogs.app.AppMenu
+import app.simple.inure.dialogs.apps.AppsMenu.Companion.newAppsMenuInstance
 import app.simple.inure.dialogs.apps.AppsSort.Companion.showAppsSortDialog
-import app.simple.inure.dialogs.menus.AppsMenu
 import app.simple.inure.dialogs.miscellaneous.GenerateAppData.Companion.showGeneratedDataTypeSelector
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.interfaces.adapters.AdapterCallbacks
 import app.simple.inure.preferences.AppsPreferences
-import app.simple.inure.ui.viewers.HtmlViewer
+import app.simple.inure.ui.viewers.HTML
 import app.simple.inure.ui.viewers.JSON
 import app.simple.inure.ui.viewers.Markdown
-import app.simple.inure.ui.viewers.XMLViewerTextView
+import app.simple.inure.ui.viewers.XML
 import app.simple.inure.util.NullSafety.isNotNull
 import app.simple.inure.util.StringUtils.endsWithAny
 import app.simple.inure.viewmodels.panels.AppsViewModel
@@ -51,8 +51,11 @@ class Apps : ScopedFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        showLoader()
         postponeEnterTransition()
+
+        if (appsViewModel.shouldShowLoader()) {
+            showLoader(manualOverride = true)
+        }
 
         appsViewModel.getAppData().observe(viewLifecycleOwner) { it ->
             postponeEnterTransition()
@@ -67,11 +70,11 @@ class Apps : ScopedFragment() {
 
             adapter.setOnItemClickListener(object : AdapterCallbacks {
                 override fun onAppClicked(packageInfo: PackageInfo, icon: ImageView) {
-                    openFragmentArc(AppInfo.newInstance(packageInfo), icon, "app_info")
+                    openFragmentArc(AppInfo.newInstance(packageInfo), icon, AppInfo.TAG)
                 }
 
                 override fun onAppLongPressed(packageInfo: PackageInfo, icon: ImageView) {
-                    AppsMenu.newInstance(packageInfo)
+                    AppMenu.newInstance(packageInfo)
                         .show(childFragmentManager, "apps_menu")
                 }
             })
@@ -101,7 +104,7 @@ class Apps : ScopedFragment() {
                     }
 
                     R.drawable.ic_search -> {
-                        openFragmentSlide(Search.newInstance(true), "search")
+                        openFragmentSlide(Search.newInstance(true), Search.TAG)
                     }
 
                     R.drawable.ic_refresh -> {
@@ -126,23 +129,23 @@ class Apps : ScopedFragment() {
                  */
                 when {
                     path.endsWithAny(*generatedDataTextExtension) -> {
-                        openFragmentSlide(XMLViewerTextView.newInstance(
-                                PackageInfo(), false /* Not needed? */, path, true), "xml_viewer")
+                        openFragmentSlide(XML.newInstance(
+                                PackageInfo(), false /* Not needed? */, path, true), XML.TAG)
                     }
 
                     path.endsWith(htmlExtension) -> {
-                        openFragmentSlide(HtmlViewer.newInstance(
-                                PackageInfo(), path, true), "web_page")
+                        openFragmentSlide(HTML.newInstance(
+                                PackageInfo(), path, true), HTML.TAG)
                     }
 
                     path.endsWith((jsonExtension)) -> {
                         openFragmentSlide(JSON.newInstance(
-                                PackageInfo(), path, true), "json_viewer")
+                                PackageInfo(), path, true), JSON.TAG)
                     }
 
                     path.endsWithAny(*markdownExtensions) -> {
                         openFragmentSlide(Markdown.newInstance(
-                                PackageInfo(), path, true), "markdown_viewer")
+                                PackageInfo(), path, true), Markdown.TAG)
                     }
                 }
 

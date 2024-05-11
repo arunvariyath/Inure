@@ -11,13 +11,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import app.simple.inure.R
-import app.simple.inure.adapters.analytics.AnalyticsDataAdapter
+import app.simple.inure.adapters.tags.AdapterTaggedApps
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.decorations.ripple.DynamicRippleImageButton
 import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.decorations.views.CustomProgressBar
-import app.simple.inure.dialogs.menus.AppsMenu
+import app.simple.inure.dialogs.app.AppMenu
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.factories.subpanels.TaggedAppsViewModelFactory
 import app.simple.inure.interfaces.adapters.AdapterCallbacks
@@ -71,7 +71,7 @@ class TaggedApps : ScopedFragment() {
             count.text = getString(R.string.total_apps, it.size.toString())
             loader.gone(animate = true)
 
-            with(AnalyticsDataAdapter(it)) {
+            with(AdapterTaggedApps(it)) {
                 recyclerView.adapter = this
                 setOnAdapterCallbacks(object : AdapterCallbacks {
 
@@ -80,8 +80,8 @@ class TaggedApps : ScopedFragment() {
                     }
 
                     override fun onAppLongPressed(packageInfo: PackageInfo, icon: ImageView) {
-                        AppsMenu.newInstance(packageInfo)
-                            .show(childFragmentManager, "apps_menu")
+                        AppMenu.newInstance(packageInfo)
+                            .show(childFragmentManager, AppMenu.TAG)
                     }
                 })
             }
@@ -108,8 +108,8 @@ class TaggedApps : ScopedFragment() {
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, swipeDir: Int) {
             // Remove swiped item from list and notify the RecyclerView
             val position = viewHolder.bindingAdapterPosition
-            val packageName = (recyclerView.adapter as AnalyticsDataAdapter).getPackageInfo(position).packageName
-            (recyclerView.adapter as AnalyticsDataAdapter).removeItem(position)
+            val packageName = (recyclerView.adapter as AdapterTaggedApps).getPackageInfo(position).packageName
+            (recyclerView.adapter as AdapterTaggedApps).removeItem(position)
 
             tagsListViewModel.deleteTaggedApp(requireArguments().getString(BundleConstants.tag)!!, packageName) {
                 tagsViewModel.refresh()
@@ -125,5 +125,7 @@ class TaggedApps : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "tagged_apps"
     }
 }

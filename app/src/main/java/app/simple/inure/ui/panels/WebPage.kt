@@ -11,9 +11,9 @@ import app.simple.inure.decorations.padding.PaddingAwareNestedScrollView
 import app.simple.inure.decorations.views.CustomWebView
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.math.Extensions.percentOf
-import app.simple.inure.util.ConditionUtils.isNull
-import app.simple.inure.util.LocaleHelper
+import app.simple.inure.util.LocaleUtils
 import app.simple.inure.util.NullSafety.isNotNull
+import app.simple.inure.util.NullSafety.isNull
 
 class WebPage : ScopedFragment() {
 
@@ -65,7 +65,7 @@ class WebPage : ScopedFragment() {
                     webView.loadUrl("file:///android_asset/html/gpl.html")
                 }
                 getString(R.string.privacy_policy) -> {
-                    when (LocaleHelper.getAppLocale().language) {
+                    when (LocaleUtils.getAppLocale().language) {
                         "ar",
                         "ar-rSA" -> {
                             webView.loadUrl("file:///android_asset/l10n_html/ar/privacy.html")
@@ -104,5 +104,7 @@ class WebPage : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "WebPage"
     }
 }

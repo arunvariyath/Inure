@@ -43,10 +43,11 @@ These features require root access to work in the app.
 - Force trigger launch for any component.
 - Reinstall apps on the go.
 - Clear data and cache of any app.
-- Block app trackers.
+- Block app trackers using IFW method.
 - View and modify shared preferences of any app.
 - Run installer in root mode to seamlessly install apps.
 - Run Terminal in root mode.
+- Change **AppOps** permissions of any app.
 
 ### Shizuku Features
 
@@ -65,20 +66,33 @@ UI feature of Inure that makes it stand out.
 
 - Fresh and modern interface design with customizable fluid motion animations.
 - Customize app with various font styles and accent colors.
-- Varius dark and light mode themes.
+- Various dark and light mode themes.
 - Adjust corner radius to remove or add rounded corners to all UI elements in the app.
 - Glowing icon effects to give a pleasant look to all the app icons.
 - Adjust icon size of all apps in the app.
 - Ability to disable animations in the app completely or customize them to your liking.
 - Various accessibility feature to add retro touch in the app if you're used to legacy layouts and
   ease of access for various users.
+- Dynamic interface to support all screen sizes and aspect ratios.
+- Customizable home panel with various options to choose from.
+- Supports seamless operations using keyboard and mouse.
 
 ### Bonus Features
 
 Features that are added for convenience
 
 - Music library browser to browse all your music files in one place.
-- Audio player
+- Audio player with streaming support.
+- LRC file support for audio player.
+- Play video files as audio.
 - Image Viewer with SVG and GIF support
 - TTF viewer
 - Text Viewer and Editor
+
+### How does GitHub builds differ from Play builds?
+GitHub builds don't have play policies constraints and therefore allows more room for including features
+that are not possible to have in play builds. Here are the list of feature exclusive to GitHub builds only.
+
+- Debloat
+- Activate using license key without unlocker
+- More store options

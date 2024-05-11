@@ -12,7 +12,11 @@ import android.os.StrictMode
 import android.transition.ArcMotion
 import android.transition.Fade
 import android.util.Log
-import android.view.*
+import android.view.OrientationEventListener
+import android.view.Surface
+import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
@@ -31,17 +35,26 @@ import app.simple.inure.R
 import app.simple.inure.database.instances.StackTraceDatabase
 import app.simple.inure.decorations.transitions.compat.DetailsTransitionArc
 import app.simple.inure.dialogs.app.FullVersion.Companion.showFullVersion
+import app.simple.inure.dialogs.app.Sure.Companion.newSureInstance
 import app.simple.inure.dialogs.miscellaneous.Error.Companion.showError
 import app.simple.inure.dialogs.miscellaneous.Loader
 import app.simple.inure.dialogs.miscellaneous.Warning.Companion.showWarning
+import app.simple.inure.interfaces.fragments.SureCallbacks
 import app.simple.inure.popups.behavior.PopupArcType
 import app.simple.inure.popups.behavior.PopupTransitionType
-import app.simple.inure.preferences.*
+import app.simple.inure.preferences.ApkBrowserPreferences
+import app.simple.inure.preferences.AppearancePreferences
+import app.simple.inure.preferences.BehaviourPreferences
+import app.simple.inure.preferences.ConfigurationPreferences
+import app.simple.inure.preferences.DevelopmentPreferences
+import app.simple.inure.preferences.SharedPreferences
 import app.simple.inure.preferences.SharedPreferences.registerEncryptedSharedPreferencesListener
 import app.simple.inure.preferences.SharedPreferences.registerSharedPreferencesListener
 import app.simple.inure.preferences.SharedPreferences.unregisterEncryptedSharedPreferencesListener
 import app.simple.inure.preferences.SharedPreferences.unregisterListener
+import app.simple.inure.preferences.ShellPreferences
 import app.simple.inure.preferences.ShellPreferences.getHomePath
+import app.simple.inure.preferences.TrialPreferences
 import app.simple.inure.themes.data.MaterialYou
 import app.simple.inure.themes.data.MaterialYou.presetMaterialYouDynamicColors
 import app.simple.inure.themes.interfaces.ThemeChangedListener
@@ -50,10 +63,15 @@ import app.simple.inure.themes.manager.ThemeUtils
 import app.simple.inure.themes.manager.ThemeUtils.setTheme
 import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.ContextUtils
-import app.simple.inure.util.LocaleHelper
+import app.simple.inure.util.LocaleUtils
 import app.simple.inure.util.NullSafety.isNull
 import app.simple.inure.util.SDCard
-import com.google.android.material.transition.platform.*
+import com.google.android.material.transition.platform.MaterialArcMotion
+import com.google.android.material.transition.platform.MaterialContainerTransform
+import com.google.android.material.transition.platform.MaterialContainerTransformSharedElementCallback
+import com.google.android.material.transition.platform.MaterialElevationScale
+import com.google.android.material.transition.platform.MaterialFadeThrough
+import com.google.android.material.transition.platform.MaterialSharedAxis
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -163,7 +181,7 @@ open class BaseActivity : AppCompatActivity(),
         /**
          * Keeps the instance of current locale of the app
          */
-        LocaleHelper.setAppLocale(ConfigurationCompat.getLocales(resources.configuration)[0]!!)
+        LocaleUtils.setAppLocale(ConfigurationCompat.getLocales(resources.configuration)[0]!!)
 
         ThemeUtils.setBarColors(resources, window)
         setNavColor()
@@ -559,6 +577,14 @@ open class BaseActivity : AppCompatActivity(),
         loader?.dismiss()
     }
 
+    protected fun onSure(onSure: () -> Unit) {
+        supportFragmentManager.newSureInstance().setOnSureCallbackListener(object : SureCallbacks {
+            override fun onSure() {
+                onSure()
+            }
+        })
+    }
+
     override fun onSharedPreferenceChanged(sharedPreferences: android.content.SharedPreferences?, key: String?) {
         when (key) {
             DevelopmentPreferences.disableTransparentStatus,
@@ -567,17 +593,17 @@ open class BaseActivity : AppCompatActivity(),
                 fixNavigationBarOverlap()
             }
 
-            AppearancePreferences.accentColor,
-            AppearancePreferences.accentOnNav -> {
+            AppearancePreferences.ACCENT_COLOR,
+            AppearancePreferences.ACCENT_ON_NAV -> {
                 Log.d("BaseActivity", "Accent color changed")
                 setNavColor()
             }
 
-            BehaviourPreferences.arcType -> {
+            BehaviourPreferences.ARC_TYPE -> {
                 // setArc()
             }
 
-            BehaviourPreferences.transitionType -> {
+            BehaviourPreferences.TRANSITION_TYPE -> {
                 // setTransitions()
             }
 

@@ -121,6 +121,10 @@ class BatteryOptimization : ScopedFragment() {
                 startPostponedEnterTransition()
             }
         }
+
+        batteryOptimizationViewModel.getWarning().observe(viewLifecycleOwner) {
+            showWarning(it)
+        }
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
@@ -136,7 +140,12 @@ class BatteryOptimization : ScopedFragment() {
 
     companion object {
         fun newInstance(): BatteryOptimization {
-            return BatteryOptimization()
+            val args = Bundle()
+            val fragment = BatteryOptimization()
+            fragment.arguments = args
+            return fragment
         }
+
+        const val TAG = "BatteryOptimization"
     }
 }

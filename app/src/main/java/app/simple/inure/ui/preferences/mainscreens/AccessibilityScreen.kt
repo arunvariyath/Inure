@@ -9,7 +9,6 @@ import android.view.animation.DecelerateInterpolator
 import androidx.constraintlayout.widget.ConstraintLayout
 import app.simple.inure.R
 import app.simple.inure.adapters.preferences.AdapterColorPalette
-import app.simple.inure.constants.BottomMenuConstants
 import app.simple.inure.constants.Colors
 import app.simple.inure.decorations.overscroll.CustomHorizontalRecyclerView
 import app.simple.inure.decorations.ripple.DynamicRippleTextView
@@ -18,6 +17,7 @@ import app.simple.inure.decorations.typeface.TypeFaceTextView
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.popups.appearances.PopupPalettes
 import app.simple.inure.preferences.AccessibilityPreferences
+import app.simple.inure.preferences.MainPreferences
 import app.simple.inure.util.TextViewUtils.makeLinks
 import app.simple.inure.util.ViewUtils.gone
 import app.simple.inure.util.ViewUtils.visible
@@ -168,7 +168,7 @@ class AccessibilityScreen : ScopedFragment() {
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         super.onSharedPreferenceChanged(sharedPreferences, key)
         when (key) {
-            AccessibilityPreferences.colorfulIconsPalette -> {
+            AccessibilityPreferences.COLORFUL_ICONS_PALETTE -> {
                 palette.setPalette()
                 paletteRecyclerView.animate()
                     .alpha(0F)
@@ -185,7 +185,7 @@ class AccessibilityScreen : ScopedFragment() {
                     .start()
             }
 
-            AccessibilityPreferences.bottomMenuContext -> {
+            AccessibilityPreferences.BOTTOM_MENU_CONTEXT -> {
                 /**
                  * Reset the bottom menu height so that it can be reinitialized
                  * with the updated height later in [app.simple.inure.decorations.views.BottomMenuRecyclerView].
@@ -198,7 +198,7 @@ class AccessibilityScreen : ScopedFragment() {
                  *
                  * This is a workaround for that.
                  */
-                BottomMenuConstants.setBottomMenuHeight(0)
+                MainPreferences.setBottomMenuHeight(0)
             }
         }
     }
@@ -210,5 +210,7 @@ class AccessibilityScreen : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "AccessibilityScreen"
     }
 }

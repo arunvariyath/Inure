@@ -2,6 +2,7 @@ package app.simple.inure.ui.panels
 
 import android.content.ComponentName
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -18,7 +19,12 @@ import app.simple.inure.adapters.ui.AdapterTags
 import app.simple.inure.constants.BottomMenuConstants
 import app.simple.inure.constants.Misc
 import app.simple.inure.constants.ShortcutConstants
+import app.simple.inure.constants.Warnings
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
+import app.simple.inure.dialogs.tags.AutoTag
+import app.simple.inure.dialogs.tags.AutoTag.Companion.showAutoTag
+import app.simple.inure.dialogs.tags.TagsMenu
+import app.simple.inure.dialogs.tags.TagsMenu.Companion.showTagsMenu
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.models.Tag
 import app.simple.inure.popups.tags.PopupTagsMenu
@@ -65,15 +71,17 @@ class Tags : ScopedFragment() {
         postponeEnterTransition()
 
         tagsViewModel?.getTags()?.observe(viewLifecycleOwner) {
+            hideLoader()
+
             val adapter = AdapterTags(it, object : AdapterTags.Companion.TagsCallback {
                 override fun onTagClicked(tag: Tag) {
-                    openFragmentSlide(TaggedApps.newInstance(tag.tag), "tagged_apps")
+                    openFragmentSlide(TaggedApps.newInstance(tag.tag), TaggedApps.TAG)
                 }
 
                 override fun onTagLongClicked(tag: Tag) {
                     PopupTagsMenu(requireView(), object : PopupTagsMenu.Companion.TagsMenuCallback {
                         override fun onOpenClicked() {
-                            openFragmentSlide(TaggedApps.newInstance(tag.tag), "tagged_apps")
+                            openFragmentSlide(TaggedApps.newInstance(tag.tag), TaggedApps.TAG)
                         }
 
                         override fun onDeleteClicked() {
@@ -116,10 +124,25 @@ class Tags : ScopedFragment() {
             bottomRightCornerMenu?.initBottomMenuWithRecyclerView(BottomMenuConstants.getGenericBottomMenuItems(), recyclerView) { id, _ ->
                 when (id) {
                     R.drawable.ic_settings -> {
-                        openFragmentSlide(Preferences.newInstance(), "preferences")
+                        childFragmentManager.showTagsMenu().setOnTagsMenuCallback(object : TagsMenu.Companion.TagsMenuCallback {
+                            override fun onAutoTag() {
+                                childFragmentManager.showAutoTag().setAutoTagCallback(object : AutoTag.Companion.AutoTagCallback {
+                                    override fun onAutoTag(tags: Long) {
+                                        if (tags != 0L) {
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                showLoader(manualOverride = true)
+                                                tagsViewModel?.autoTag(tags)
+                                            }
+                                        } else {
+                                            showWarning(Warnings.EMPTY_FLAGS, false)
+                                        }
+                                    }
+                                })
+                            }
+                        })
                     }
                     R.drawable.ic_search -> {
-                        openFragmentSlide(Search.newInstance(true), "search")
+                        openFragmentSlide(Search.newInstance(true), Search.TAG)
                     }
                     R.drawable.ic_refresh -> {
                         tagsViewModel?.refresh()
@@ -136,5 +159,7 @@ class Tags : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "Tags"
     }
 }

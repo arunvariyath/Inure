@@ -1,5 +1,6 @@
 package app.simple.inure.ui.panels
 
+import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,13 +12,18 @@ import app.simple.inure.R
 import app.simple.inure.adapters.ui.AdapterDebloat
 import app.simple.inure.constants.BottomMenuConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
+import app.simple.inure.dialogs.app.AppMenu.Companion.showAppMenu
+import app.simple.inure.dialogs.debloat.DebloatMenu.Companion.showDebloatMenu
+import app.simple.inure.dialogs.debloat.DebloatSelect
+import app.simple.inure.dialogs.debloat.DebloatSelect.Companion.showDebloatSelectionDialog
 import app.simple.inure.dialogs.debloat.DebloatSort.Companion.showDebloatFilter
 import app.simple.inure.dialogs.debloat.UninstallMethodChoice.Companion.showUninstallMethodChoice
-import app.simple.inure.dialogs.menus.AppsMenu.Companion.showAppsMenu
 import app.simple.inure.dialogs.miscellaneous.PackageStateResult.Companion.showPackageStateResult
 import app.simple.inure.extensions.fragments.ScopedFragment
 import app.simple.inure.models.Bloat
 import app.simple.inure.preferences.DebloatPreferences
+import app.simple.inure.ui.subpanels.DebloatChecklist
+import app.simple.inure.ui.subpanels.DebloatSearch
 import app.simple.inure.util.IntentHelper.asUri
 import app.simple.inure.util.IntentHelper.openInBrowser
 import app.simple.inure.util.NullSafety.isNotNull
@@ -53,11 +59,12 @@ class Debloat : ScopedFragment() {
 
             adapterDebloat!!.setAdapterDebloatCallback(object : AdapterDebloat.Companion.AdapterDebloatCallback {
                 override fun onBloatSelected(bloat: Bloat) {
-                    bottomRightCornerMenu?.updateBottomMenu(BottomMenuConstants.getDebloatMenu(adapterDebloat!!.isAnyItemSelected()))
+                    updateBottomMenu()
+                    debloatViewModel?.loadSelectedBloatList()
                 }
 
                 override fun onBloatLongPressed(bloat: Bloat) {
-                    childFragmentManager.showAppsMenu(bloat.packageInfo)
+                    childFragmentManager.showAppMenu(bloat.packageInfo)
                 }
             })
 
@@ -71,7 +78,15 @@ class Debloat : ScopedFragment() {
                     BottomMenuConstants.getDebloatMenu(adapterDebloat!!.isAnyItemSelected()), recyclerView) { id, _ ->
                 when (id) {
                     R.drawable.ic_select_all -> {
-                        adapterDebloat?.updateSelections()
+                        childFragmentManager.showDebloatSelectionDialog().setOnDebloatSelectCallback(object : DebloatSelect.Companion.DebloatSelectCallback {
+                            override fun onModeSelected(mode: Int) {
+                                adapterDebloat?.updateSelections(mode)
+                                updateBottomMenu()
+                            }
+                        })
+                    }
+                    R.drawable.ic_checklist -> {
+                        openFragmentSlide(DebloatChecklist.newInstance(), DebloatChecklist.TAG)
                     }
                     R.drawable.ic_recycling -> {
                         childFragmentManager.showUninstallMethodChoice().onUninstallMethodSelected = { uninstall ->
@@ -104,10 +119,10 @@ class Debloat : ScopedFragment() {
                         childFragmentManager.showDebloatFilter()
                     }
                     R.drawable.ic_settings -> {
-                        openFragmentSlide(Preferences.newInstance(), "preferences")
+                        childFragmentManager.showDebloatMenu()
                     }
                     R.drawable.ic_search -> {
-                        openFragmentSlide(Search.newInstance(firstLaunch = true), "search")
+                        openFragmentSlide(DebloatSearch.newInstance(), DebloatSearch.TAG)
                     }
                 }
             }
@@ -122,19 +137,42 @@ class Debloat : ScopedFragment() {
                 debloatViewModel?.refreshBloatList()
             }
         }
+
+        debloatViewModel?.getWarning()?.observe(viewLifecycleOwner) {
+            hideLoader()
+            showWarning(it, false)
+        }
+
+        debloatViewModel?.getError()?.observe(viewLifecycleOwner) {
+            hideLoader()
+            showError(it, false)
+        }
     }
 
+    private fun updateBottomMenu() {
+        bottomRightCornerMenu?.updateBottomMenu(BottomMenuConstants.getDebloatMenu(adapterDebloat!!.isAnyItemSelected()))
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         super.onSharedPreferenceChanged(sharedPreferences, key)
         when (key) {
-            DebloatPreferences.applicationType,
-            DebloatPreferences.listType,
-            DebloatPreferences.removalType,
-            DebloatPreferences.sort,
-            DebloatPreferences.state,
-            DebloatPreferences.sortingStyle -> {
+            DebloatPreferences.APPLICATION_TYPE,
+            DebloatPreferences.LIST_TYPE,
+            DebloatPreferences.REMOVAL_TYPE,
+            DebloatPreferences.SORT,
+            DebloatPreferences.STATE,
+            DebloatPreferences.SORTING_STYLE -> {
                 adapterDebloat?.setLoading(true)
                 debloatViewModel?.refreshBloatList()
+            }
+
+            DebloatPreferences.RECOMMENDED_HIGHLIGHT,
+            DebloatPreferences.ADVANCED_HIGHLIGHT,
+            DebloatPreferences.EXPERT_HIGHLIGHT,
+            DebloatPreferences.UNSAFE_HIGHLIGHT,
+            DebloatPreferences.UNLISTED_HIGHLIGHT -> {
+                adapterDebloat?.notifyDataSetChanged()
             }
         }
     }
@@ -146,5 +184,7 @@ class Debloat : ScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "Debloat"
     }
 }

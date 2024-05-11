@@ -17,14 +17,18 @@ import app.simple.inure.glide.modules.GlideApp
 import app.simple.inure.glide.util.ImageLoader.loadAppIcon
 import app.simple.inure.interfaces.adapters.AdapterCallbacks
 import app.simple.inure.models.BatchPackageInfo
+import app.simple.inure.models.Tag
 import app.simple.inure.preferences.BatchPreferences
 import app.simple.inure.preferences.FormattingPreferences
-import app.simple.inure.util.*
 import app.simple.inure.util.ArrayUtils.move
 import app.simple.inure.util.ConditionUtils.invert
+import app.simple.inure.util.DateUtils
 import app.simple.inure.util.FileUtils.toFile
+import app.simple.inure.util.LocaleUtils
+import app.simple.inure.util.RecyclerViewUtils
+import app.simple.inure.util.Sort
 import app.simple.inure.util.SortBatch.getSortedList
-import java.util.*
+import app.simple.inure.util.StatusBarHeight
 import java.util.stream.Collectors
 
 class AdapterBatch(var apps: ArrayList<BatchPackageInfo>, var headerEnabled: Boolean = true) : RecyclerView.Adapter<VerticalListViewHolder>() {
@@ -36,7 +40,7 @@ class AdapterBatch(var apps: ArrayList<BatchPackageInfo>, var headerEnabled: Boo
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VerticalListViewHolder {
         return when (viewType) {
             RecyclerViewUtils.TYPE_HEADER -> {
-                if (LocaleHelper.isAppRussianLocale() && StatusBarHeight.isLandscape(parent.context).invert()) {
+                if (LocaleUtils.isAppRussianLocale() && StatusBarHeight.isLandscape(parent.context).invert()) {
                     Header(LayoutInflater.from(parent.context)
                                .inflate(R.layout.adapter_header_batch_ru, parent, false))
                 } else {
@@ -296,15 +300,29 @@ class AdapterBatch(var apps: ArrayList<BatchPackageInfo>, var headerEnabled: Boo
         return apps.stream().allMatch { it.isSelected }
     }
 
-    fun deselectAll() {
+    private fun deselectAll() {
         for (i in apps.indices) {
             apps[i].isSelected = false
             notifyItemChanged(i.plus(1))
         }
+
+        notifyItemChanged(0) // header
     }
 
     fun getSelectedAppsCount(): Int {
         return apps.count { it.isSelected }
+    }
+
+    fun createSelectionFromTags(tag: Tag) {
+        deselectAll()
+        tag.packages.split(",").forEach { packageName ->
+            for (i in apps.indices) {
+                if (apps[i].packageInfo.packageName == packageName) {
+                    apps[i].isSelected = true
+                    notifyItemChanged(i.plus(1))
+                }
+            }
+        }
     }
 
     inner class Holder(itemView: View) : VerticalListViewHolder(itemView) {

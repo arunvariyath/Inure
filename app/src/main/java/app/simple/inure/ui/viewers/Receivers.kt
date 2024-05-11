@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterReceivers
+import app.simple.inure.adapters.viewers.AdapterReceivers
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.dialogs.action.ComponentState
@@ -53,6 +53,7 @@ class Receivers : SearchBarScopedFragment() {
         receiversViewModel.getReceivers().observe(viewLifecycleOwner) {
             adapterReceivers = AdapterReceivers(it, packageInfo, searchBox.text.toString().trim())
             recyclerView.adapter = adapterReceivers
+            setCount(it.size)
 
             adapterReceivers?.setOnReceiversCallbackListener(object : AdapterReceivers.Companion.ReceiversCallbacks {
                 override fun onReceiverClicked(activityInfoModel: ActivityInfoModel) {
@@ -119,5 +120,7 @@ class Receivers : SearchBarScopedFragment() {
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "receivers"
     }
 }

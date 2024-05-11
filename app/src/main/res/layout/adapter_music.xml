@@ -5,7 +5,7 @@
     android:id="@+id/adapter_music_container"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="10dp"
+    android:layout_margin="@dimen/popup_padding"
     android:clipChildren="false"
     android:clipToPadding="false"
     android:orientation="horizontal">
@@ -14,7 +14,7 @@
         android:id="@+id/adapter_music_art"
         android:layout_width="@dimen/app_icon_dimension"
         android:layout_height="@dimen/app_icon_dimension"
-        android:padding="5dp"
+        android:padding="2dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"

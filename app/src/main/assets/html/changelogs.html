@@ -15,15 +15,22 @@
 
 <!-- Write change logs here -->
 <sub>(Current Version)</sub>
+<h2>Build100.5.1</h2>
 
-<h2>Build100.1.1</h2>
+<h4>User Interface</h4>
+
+<ul>
+    <li><i>Deep Search</i> can now be used with <b>Tags</b> in <b>Search</b> panel.</li>
+    <li>Added option to automatically create a tag for all apps with trackers in <i>Auto Tag</i>.
+    </li>
+</ul>
 
 <h4>Bug Fixes</h4>
 
 <ul>
-    <li>Fixed <b>Manifest Viewer</b> crashing for external APK files.</li>
-    <li>Fixed <i>Battery Optimization</i> switch not working properly in <b>App Info</b> panel.</li>
-    <li>Fixes for <i>Battery Optimization</i> toggle interface.</li>
+    <li>Fixed a crash in <b>Search</b> when <b>Tags</b> are used.</li>
+    <li>Fixed tags not loading anything in <b>Search</b>.</li>
+    <li>Fixed <b>Debloat</b> select state issues.</li>
 </ul>
 
 <br/>
@@ -34,6 +41,394 @@
 <h4 style="text-align: center;">Older Versions</h4>
 <br/>
 
+<h2>Build100.5.0</h2>
+
+<h4>User Interface</h4>
+
+<ul>
+    <li>Added loaders on various <b>Home</b> sub-panels.</li>
+    <li>Added <b>Preferences</b> icon in <b>Home</b> panel.</li>
+    <li>Added <b>Auto Tag</b> in <b>Tags</b> panel to automate the tags creation process based on
+        the already available info.
+        <br>
+        <small>Available only in Oreo+ deices.</small>
+    </li>
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed <i>Colorful Icons</i> getting applied on <b>Bottom Menu</b> when accent color is used.
+    </li>
+    <li>Fixed uninstalled apps icon not loading in <b>Tags</b> panel.</li>
+    <li>Fixed <i>Bottom Menu</i> not appearing back in smaller lists after dragging.</li>
+    <li>Fixed permission dialogs position issue on screen.</li>
+</ul>
+
+<h4>Improvements</h4>
+
+<ul>
+    <li>Better cache size reporting in <b>Clear Cache</b> dialog.</li>
+</ul>
+
+<h4>Removed</h4>
+
+<ul>
+    <li>Removed all unsupported and unreadable binary files from <b>Extras</b> panel.</li>
+</ul>
+
+<h4>AppOps</h4>
+
+<ul>
+    <li>AppOps can be used with Shizuku as well.</li>
+    <li>Added a complete Android permission list to make sure we fetch the correct permission
+        description for various operations.
+    </li>
+    <li>Sentence cases for titles.</li>
+</ul>
+
+<h2>Build100.4.2</h2>
+
+<h4>User Interface</h4>
+
+<ul>
+    <li>Added option to use <i>Accent Color</i> on <i>Bottom Menu</i> in <b>Appearance
+                                                                            Preferences</b>.
+        <br>
+        <small>
+            The setting has been moved from <b>Development Preferences.</b>
+        </small>
+    </li>
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed data usage appearing in multi-lines in <b>Usage Stats</b> panel.</li>
+    <li>Fixed <i>Play</i> option not playing the audio file in <b>Music</b>.</li>
+    <li>Fixed <i>Error -3001</i> in <b>Reinstaller</b> in some devices.</li>
+    <li>Fixed a crash on fetching user number using <b>Shizuku</b>.</li>
+    <li>Fixed success status report on failed installation on Shizuku.</li>
+    <li>Fixed deprecated installer warning close button issue.</li>
+    <li>Fixed bypassing low target SDK block for Shizuku.</li>
+</ul>
+
+<h4>Improvements</h4>
+
+<ul>
+    <li>Few UI tweaks and optimization.</li>
+</ul>
+
+<h4>Changes</h4>
+
+<ul>
+    <li>Hide <b>Dex Classes</b> on <i>Android System</i> because it's not an app.</li>
+</ul>
+
+<h4>Translations</h4>
+
+<ul>
+    <li>Added Turkish translations.
+        <br>
+        <small>Thanks to <i>Ertuğrul Sağlam, Kyoya, savaş yazan</i>.</small>
+    </li>
+</ul>
+
+<br>
+
+<h2>Build100.4.1</h2>
+
+<h4>User Interface</h4>
+
+<ul>
+    <li>Added <i>Play Review</i> dialog in the <b>Play</b> builds.</li>
+    <li>Updated <b>Graphics</b> panel interface.</li>
+    <li>Updated <b>Extras</b> panel interface.</li>
+    <li>Added graphic element size in the archive in <b>Graphics</b> panel.</li>
+    <li>Added graphic element size in the archive in <b>Extras</b> panel.</li>
+    <li>Optimized <b>Usage Stats</b> panel interface for better memory usage and performance
+        optimization.
+    </li>
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed cache size not loading below Oreo devices in <b>Manage Space</b> panel.</li>
+    <li>Fixed close button not doing anything in <b>Debloat Select</b> dialog.</li>
+    <li>Fixed <i>"Error: Unexpected end of document"</i> issue in the app's whole <b>Trackers
+                                                                                     Framework</b>.
+    </li>
+</ul>
+
+<h4>Improvement</h4>
+
+<ul>
+    <li>Improve Shizuku permission flow.</li>
+</ul>
+
+<h4>Removed</h4>
+
+<ul>
+    <li>Removed legacy rate dialog from <b>Play</b> builds.</li>
+</ul>
+
+<br>
+
+<h2>Build100.4.0</h2>
+
+<h4>User Interface</h4>
+
+<ul>
+    <li>Added option to clear complete app's cache in <b>Manage Space</b> panel.</li>
+    <li><b>Batch Trackers</b> can now be used in <i>Normal</i> and <i>Shizuku</i> modes.
+        <br>
+        <small>Blocking will still require root.</small>
+    </li>
+    <li>Added option to use realtime blur transition while switching panels.
+        <br>
+        <small>Can be toggled in <b>Development Preferences.</b></small>
+    </li>
+    <li>Added more options in <b>Debloat Select</b> dialog.</li>
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed a crash on <i>Search</i> and <i>Manage Space</i>.</li>
+    <li>Fixed checked items not showing in <b>Debloat Checklist</b> if checked from <i>Search</i>.
+    </li>
+    <li>Fixed <i>App Menu</i> not working in <b>Debloat Checklist</b> and <b>Debloat Search</b>.
+    </li>
+    <li>Fixed issues with <b>Batch Actions</b> menu.</li>
+</ul>
+
+<h4>Shizuku</h4>
+
+<ul>
+    <li>Complete Shizuku migration to the newer and updated APIs.
+        <br>
+        <small>
+            You may notice much better performance and stability over every Shizuku operations now.
+        </small>
+    </li>
+</ul>
+
+<br>
+
+<h2>Build100.3.1</h2>
+
+<h4>User Interface</h4>
+
+<ul>
+    <li>Added dedicated actions menu in <b>Batch</b> to reduce options overloading.</li>
+    <li>Added empty data loaders before various panels.</li>
+    <li>Warning indicator for <i>Move Selections to Top</i> in <b>Batch</b>.</li>
+    <li>Added debloat checklist for managing selections in <b>Debloat</b>.</li>
+    <li>Colorful icons for <i>Bottom Menu</i>.</li>
+    <li>Added option to search inside supported apps in <b>App Info</b> panel.</li>
+    <li>Added option to open <i>Manage Space</i> activity of supported apps in <b>App Info</b>
+        panel.
+    </li>
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed a random crash in <b>Installer</b>.</li>
+    <li>Fixed various issues with <b>Preferences</b> header.</li>
+    <li>Fixed mission control buttons from audio player notification.</li>
+    <li>Fixed an old issue where close button in not appearing in audio player notification.</li>
+    <li>Fixed no ID state in <b>Audio Player</b> causing the player to restart on same file.</li>
+    <li>Fixed a lag while starting <b>Audio Player</b>.</li>
+    <li>Fixed accent color not changing for app icon in the list in various places of the app.</li>
+    <li>Prevent app from crashing when <b>Audio Player</b> screen is pinned.</li>
+    <li>Fix low contrast for filter chips.</li>
+    <li>Fixed <b>Audio Player</b> going in playing state when positioned on paused state.</li>
+    <li>Fixed media notification recreating everytime audio is changed.</li>
+    <li>Fixed too much rounding in <i>Chips</i>.</li>
+    <li>Fixed no divider on <i>Bottom Menus</i> on first launch.</li>
+    <li>Fixed tracker info not opening from <b>Installer</b>.</li>
+    <li>Fixed some random issues and crashes.</li>
+</ul>
+
+<h4>Removed</h4>
+
+<ul>
+    <li>Removed <i>Remove Stroke from Chips</i> from <b>Development Preferences</b>.</li>
+    <li>Removed <i>Felicity</i> tag from music.</li>
+</ul>
+
+<br>
+
+<h2>Build100.3.0</h2>
+
+<h4>User Interface</h4>
+
+<ul>
+    <li>Added option to create <b>Batch</b> selections form tags.</li>
+    <li>Added <b>Term Here</b> in component manager.</li>
+    <li>Updated tracker info panel interface to match the app UI.</li>
+    <li>Show tracker names instead of component in <b>Information</b> panel.</li>
+    <li>Added dedicated search panel for <b>Debloat</b>.</li>
+    <li>Added highlighter in <b>Debloat</b> for various removal types.</li>
+    <li>Dedicated menu for <b>Home</b> panel.</li>
+    <li>Dedicated menu for <b>Installer</b> panel.</li>
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed a crash in <b>Boot</b> panel.</li>
+    <li>Fixed a crash caused by Shizuku binder in some cases.</li>
+    <li>Fixed some trackers description links not clickable.</li>
+    <li>Fixed <b>Term Here</b> path issues.</li>
+    <li>Fixed copy popup showing at random places in <b>Installer</b>.</li>
+    <li>Fixed high alpha level for highlighted backgrounds.</li>
+    <li>Fixed <b>Audio Player</b> crashing when opened from notification.</li>
+</ul>
+
+<h4>Improvements</h4>
+
+<ul>
+    <li>Optimized <b>Search</b> framework for faster data loading and fix some rare crashes.</li>
+    <li>Better AppOps framework.</li>
+</ul>
+
+<h4>Moved</h4>
+
+<ul>
+    <li>Moved app information strip preferences in <b>Formatting</b> preferences.</li>
+</ul>
+
+<h4>Removed</h4>
+
+<ul>
+    <li>Removed <b>Combine Flags</b> from <b>Search</b> panel.</li>
+    <li>Removed home preferences from <b>Layouts</b> in favour of <i>Home Menu</i>.</li>
+    <li>Removed <b>Layouts</b> preferences from <b>Preferences</b>.
+        <br>
+        <small>All the preferences from this panel has been relocated to their respective panels for
+               quicker preferences.</small>
+    </li>
+</ul>
+
+<br>
+
+<h2>Build100.2.6</h2>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed crashes caused by Shizuku listeners.</li>
+    <li>Fixed an issue that's preventing an app launch after installation.</li>
+    <li>Fixed an issue that's causing corruption in exported app data.</li>
+</ul>
+
+<br>
+
+<h2>Build100.2.4</h2>
+
+<h4>User Interface</h4>
+
+<ul>
+    <li>Added count numbers in various components viewer panels.</li>
+    <li>Added option to use accent color on <b>Bottom Menu</b>.
+        <br>
+        <small>Can be toggled from <b>Development Preferences</b>.</small>
+    </li>
+    <li>Added send intent support for various viewer components.</li>
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed <b>Installer</b> not exiting automatically on error.</li>
+    <li>Fixed a known memory leak in <b>Tags</b> loader.</li>
+    <li>Fixed various critical issues with Shizuku permission handling.</li>
+    <li>Fixed component state popup appearing on Shizuku.</li>
+</ul>
+
+<br>
+
+<h2>Build100.2.3</h2>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed trackers arrow icon not being added in the trackers list.</li>
+    <li>Fixed a crash while opening <i>Tracker Selection</i> panel.</li>
+    <li>Fixed rate screen opening between transactions causing the app to crash on play builds.</li>
+    <li>Fixed changelogs popup not appearing on after an update.</li>
+    <li>Fixed invalid tracker states in tracker blocker framework.</li>
+    <li>Fixed an OOM on <b>Dex Classes Code Viewer</b>.</li>
+    <li>Fixed some random crashes.</li>
+</ul>
+
+<br>
+
+<h2>Build100.2.0</h2>
+
+<h4>User Interface</h4>
+
+<ul>
+    <li>Added <i>Debloat Select</i> dialog for better and refined selection options.</li>
+    <li>Added a popup to help with downgrading an app in <b>Installer</b> panel.</li>
+    <li>Few improvements in <b>Setup</b> interface.</li>
+    <li>It's now possible to open tracker info from <b>Batch Trackers</b>.</li>
+    <li>Added option to use demo of <b>Peristyle</b> interface in <b>Music</b> panel.</li>
+    <li><b>Information</b> panel directory paths are clickable now.</li>
+    <li>Updated <b>Extract</b> dialog interface.</li>
+    <li>Updated <b>Language</b> interface to include translators' credits and Crowdin link.</li>
+</ul>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed some animations.</li>
+    <li>Fixed <b>Batch Tracker</b> crashing on scanning uninstalled apps for trackers.</li>
+    <li>Fixed markdown not rendering for generated app data.</li>
+</ul>
+
+<h4>Improvements</h4>
+
+<ul>
+    <li>Improved batch tracker loader for faster loading.</li>
+    <li>Improved markdown renderer to render the MD files more efficiently.</li>
+</ul>
+
+<h4>Trackers</h4>
+
+<ul>
+    <li>Updated trackers scanner framework.</li>
+    <li>Updated trackers database to include more information about the trackers.</li>
+    <li>Updated tracker scanner interface throughout the app.</li>
+    <li>Added <b>Tracker Details</b> panel to view detailed information about each tracker.</li>
+</ul>
+
+<br>
+
+<h2>Build100.1.2</h2>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed root shell not initializing on APatch root.</li>
+</ul>
+
+<br>
+<h2>Build100.1.1</h2>
+
+<h4>Bug Fixes</h4>
+
+<ul>
+    <li>Fixed <b>Manifest Viewer</b> crashing for external APK files.</li>
+    <li>Fixed <i>Battery Optimization</i> switch not working properly in <b>App Info</b> panel.</li>
+    <li>Fixes for <i>Battery Optimization</i> toggle interface.</li>
+</ul>
+
+
+<br/>
 <h2>Build100.1.0</h2>
 
 <h4>User Interface</h4>
@@ -83,6 +478,8 @@
     <li>Removed users list toggle from <b>Development Preferences</b>.</li>
 </ul>
 
+
+<br/>
 <h2>Build99.1.0</h2>
 
 <h4>User Interface</h4>
@@ -115,6 +512,8 @@
     </li>
 </ul>
 
+
+<br/>
 <h2>Build99.0.1-3</h2>
 
 <h4>User Interface</h4>
@@ -149,10 +548,13 @@
     <li>Removed the toast notification that pops up whenever terminal window state is changed.</li>
 </ul>
 
+<br/>
 <p>
     Inure will now use <b>semantic versioning</b> for all future releases.
 </p>
 
+
+<br/>
 <h4>Build99</h4>
 
 <h4>Bug Fixes</h4>
@@ -178,6 +580,8 @@
     </li>
 </ul>
 
+
+<br/>
 <h2>Build97</h2>
 
 <h4>User Interface</h4>
@@ -233,6 +637,8 @@
     <li>Context bottom menu is now by default on.</li>
 </ul>
 
+
+<br/>
 <h2>Build96</h2>
 
 <h4>User Interface</h4>
@@ -289,6 +695,8 @@
     <li>You can now drag the switch thumb through the entire screen.</li>
 </ul>
 
+
+<br/>
 <h2>Build95</h2>
 
 <h4>User Interface</h4>
@@ -327,6 +735,8 @@
     </li>
 </ul>
 
+
+<br/>
 <h2>Build94</h2>
 
 <h4>User Interface</h4>
@@ -373,6 +783,8 @@
     </li>
 </ul>
 
+
+<br/>
 <h2>Build93</h2>
 <div class="content-inner">
     <h4>User Interface</h4>

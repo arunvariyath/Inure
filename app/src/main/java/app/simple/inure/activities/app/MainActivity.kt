@@ -17,14 +17,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import app.simple.inure.R
-import app.simple.inure.apk.utils.PackageUtils.isPackageInstalled
-import app.simple.inure.constants.IntentConstants
 import app.simple.inure.constants.Misc
 import app.simple.inure.constants.ShortcutConstants
 import app.simple.inure.constants.ThemeConstants
 import app.simple.inure.constants.Warnings
 import app.simple.inure.crash.CrashReporter
 import app.simple.inure.decorations.theme.ThemeCoordinatorLayout
+import app.simple.inure.dialogs.app.License.Companion.showLicense
 import app.simple.inure.dialogs.batch.BatchExtract.Companion.showBatchExtract
 import app.simple.inure.extensions.activities.BaseActivity
 import app.simple.inure.preferences.AppearancePreferences
@@ -56,11 +55,11 @@ import app.simple.inure.ui.panels.Statistics
 import app.simple.inure.ui.panels.Tags
 import app.simple.inure.ui.panels.Uninstalled
 import app.simple.inure.ui.subpanels.TaggedApps
-import app.simple.inure.ui.viewers.AudioPlayerPager
+import app.simple.inure.ui.viewers.AudioPlayer
 import app.simple.inure.util.ActivityUtils.getTopFragment
 import app.simple.inure.util.AppUtils
+import app.simple.inure.util.AppUtils.isNewerUnlocker
 import app.simple.inure.util.ConditionUtils.invert
-import app.simple.inure.util.Logger
 import app.simple.inure.util.NullSafety.isNull
 import app.simple.inure.viewmodels.launcher.LauncherViewModel
 import com.topjohnwu.superuser.ipc.RootService
@@ -101,27 +100,33 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        launcherViewModel.getHasValidCertificate().observe(this@MainActivity) { it ->
+        launcherViewModel.getShouldVerify().observe(this@MainActivity) { it ->
             if (it) {
-                if (TrialPreferences.isFullVersion().invert()) {
-                    kotlin.runCatching {
-                        if (TrialPreferences.setFullVersion(value = true)) {
-                            showWarning(R.string.full_version_activated, goBack = false)
-                            TrialPreferences.resetUnlockerWarningCount()
+                if (applicationContext.isNewerUnlocker()) {
+                    supportFragmentManager.showLicense()
+                } else {
+                    if (TrialPreferences.isFullVersion().invert()) {
+                        kotlin.runCatching {
+                            if (TrialPreferences.setFullVersion(value = true)) {
+                                showWarning(R.string.full_version_activated, goBack = false)
+                            }
+                        }.getOrElse {
+                            it.printStackTrace()
                         }
-                    }.getOrElse {
-                        it.printStackTrace()
                     }
                 }
             } else {
-                showWarning(Warnings.getInvalidUnlockerWarning(), goBack = false)
-                TrialPreferences.setFullVersion(false)
-                TrialPreferences.resetUnlockerWarningCount()
+                Log.i("License", "Verification not required")
             }
+        }
+
+        launcherViewModel.getWarning().observe(this@MainActivity) {
+            showWarning(Warnings.getInvalidUnlockerWarning(), goBack = false)
+            TrialPreferences.setFullVersion(false)
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         openPanel(intent, isNewIntent = true)
     }
@@ -224,47 +229,12 @@ class MainActivity : BaseActivity() {
 
             ShortcutConstants.AUDIO_PLAYER_ACTION -> {
                 openHome(isNewIntent)
-                openFragment(AudioPlayerPager.newInstance(MusicPreferences.getMusicPosition()), "audio_player_pager")
+                openFragment(AudioPlayer.newInstance(MusicPreferences.getMusicPosition()), "audio_player_pager")
             }
 
             "open_device_info" -> {
                 openHome(isNewIntent)
                 openFragment(DeviceInfo.newInstance(), "device_info")
-            }
-
-            IntentConstants.ACTION_UNLOCK -> {
-                if (TrialPreferences.isUnlockerVerificationRequired()) {
-                    if (packageManager.isPackageInstalled(AppUtils.unlockerPackageName)) {
-                        if (TrialPreferences.isFullVersion()) {
-                            showWarning(R.string.full_version_already_activated, goBack = false)
-
-                            supportFragmentManager.beginTransaction()
-                                .replace(R.id.app_container, SplashScreen.newInstance(false), "splash_screen")
-                                .commit()
-                        } else {
-                            if (TrialPreferences.setFullVersion(value = true)) {
-                                showWarning(R.string.full_version_activated, goBack = false)
-                                TrialPreferences.resetUnlockerWarningCount()
-
-                                supportFragmentManager.beginTransaction()
-                                    .replace(R.id.app_container, SplashScreen.newInstance(false), "splash_screen")
-                                    .commit()
-                            } else {
-                                showWarning(R.string.failed_to_activate_full_version, goBack = false)
-
-                                supportFragmentManager.beginTransaction()
-                                    .replace(R.id.app_container, SplashScreen.newInstance(false), "splash_screen")
-                                    .commit()
-                            }
-                        }
-                    } else {
-                        showWarning(Warnings.gtUnknownAppStateWarning(), goBack = false)
-
-                        supportFragmentManager.beginTransaction()
-                            .replace(R.id.app_container, SplashScreen.newInstance(false), "splash_screen")
-                            .commit()
-                    }
-                }
             }
 
             ShortcutConstants.BATCH_EXTRACT_ACTION -> {
@@ -367,7 +337,7 @@ class MainActivity : BaseActivity() {
                 recreate() // update the language in context wrapper
             }
 
-            TrialPreferences.hasLicenseKey -> {
+            TrialPreferences.HAS_LICENSE_KEY -> {
                 if (TrialPreferences.isFullVersion()) {
                     if (TrialPreferences.isUnlockerVerificationRequired().invert()) {
                         showWarning(R.string.full_version_activated, goBack = false)
@@ -451,9 +421,9 @@ class MainActivity : BaseActivity() {
 
         try {
             RootService.stop(Intent(this, RootService::class.java))
-            Logger.postVerboseLog("RootService stopped")
+            Log.d("RootService", "Stopped")
         } catch (e: IllegalStateException) {
-            Logger.postErrorLog(e.message ?: "RootService not running")
+            Log.d("RootService", "Not running")
         }
     }
 }

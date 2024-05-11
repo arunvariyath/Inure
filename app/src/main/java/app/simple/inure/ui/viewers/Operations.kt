@@ -9,15 +9,14 @@ import android.view.ViewGroup
 import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterOperations
+import app.simple.inure.adapters.viewers.AdapterOperations
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.decorations.ripple.DynamicRippleImageButton
-import app.simple.inure.dialogs.app.Sure.Companion.newSureInstance
+import app.simple.inure.decorations.views.CustomProgressBar
 import app.simple.inure.extensions.fragments.SearchBarScopedFragment
 import app.simple.inure.factories.panels.PackageInfoFactory
-import app.simple.inure.interfaces.fragments.SureCallbacks
-import app.simple.inure.models.AppOpsModel
+import app.simple.inure.models.AppOp
 import app.simple.inure.preferences.OperationsPreferences
 import app.simple.inure.util.ViewUtils.gone
 import app.simple.inure.viewmodels.viewers.OperationsViewModel
@@ -26,6 +25,7 @@ class Operations : SearchBarScopedFragment() {
 
     private lateinit var recyclerView: CustomVerticalRecyclerView
     private lateinit var options: DynamicRippleImageButton
+    private lateinit var progressBar: CustomProgressBar
     private lateinit var operationsViewModel: OperationsViewModel
     private lateinit var packageInfoFactory: PackageInfoFactory
     private var adapterOperations: AdapterOperations? = null
@@ -38,6 +38,7 @@ class Operations : SearchBarScopedFragment() {
         search = view.findViewById(R.id.operations_search_btn)
         searchBox = view.findViewById(R.id.operations_search)
         title = view.findViewById(R.id.operations_title)
+        progressBar = view.findViewById(R.id.progress_bar)
 
         packageInfoFactory = PackageInfoFactory(packageInfo)
         operationsViewModel = ViewModelProvider(this, packageInfoFactory)[OperationsViewModel::class.java]
@@ -54,23 +55,21 @@ class Operations : SearchBarScopedFragment() {
         searchBoxState(false, OperationsPreferences.isSearchVisible())
 
         operationsViewModel.getAppOpsData().observe(viewLifecycleOwner) {
+            progressBar.gone(animate = true)
             adapterOperations = AdapterOperations(it, searchBox.text.toString().trim())
+            setCount(it.size)
 
             adapterOperations?.setOnOpsCheckedChangeListener(object : AdapterOperations.Companion.AdapterOpsCallbacks {
-                override fun onCheckedChanged(appOpsModel: AppOpsModel, position: Int) {
-                    childFragmentManager.newSureInstance().setOnSureCallbackListener(object : SureCallbacks {
-                        override fun onSure() {
-                            operationsViewModel.updateAppOpsState(appOpsModel, position)
-                        }
-
-                        override fun onCancel() {
-                            adapterOperations?.updateOperation(appOpsModel, position)
-                        }
-                    })
+                override fun onCheckedChanged(appOp: AppOp, position: Int) {
+                    operationsViewModel.updateAppOpsState(appOp, position)
                 }
             })
 
             recyclerView.adapter = adapterOperations
+
+            if (it.isEmpty()) {
+                showWarning(R.string.no_operations_found)
+            }
         }
 
         operationsViewModel.getAppOpsState().observe(viewLifecycleOwner) {
@@ -78,7 +77,7 @@ class Operations : SearchBarScopedFragment() {
         }
 
         operationsViewModel.getWarning().observe(viewLifecycleOwner) {
-            showWarning(it, goBack = false)
+            showWarning(it)
         }
 
         searchBox.doOnTextChanged { text, _, _, _ ->

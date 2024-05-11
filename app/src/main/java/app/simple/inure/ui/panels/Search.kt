@@ -10,17 +10,17 @@ import android.widget.ImageView
 import androidx.core.view.doOnPreDraw
 import androidx.lifecycle.ViewModelProvider
 import app.simple.inure.R
-import app.simple.inure.adapters.details.AdapterTags
 import app.simple.inure.adapters.ui.AdapterDeepSearch
 import app.simple.inure.adapters.ui.AdapterSearch
+import app.simple.inure.adapters.viewers.AdapterTags
 import app.simple.inure.constants.BundleConstants
 import app.simple.inure.decorations.overscroll.CustomHorizontalRecyclerView
 import app.simple.inure.decorations.overscroll.CustomVerticalRecyclerView
 import app.simple.inure.decorations.searchview.SearchView
 import app.simple.inure.decorations.searchview.SearchViewEventListener
 import app.simple.inure.decorations.views.AppIconImageView
-import app.simple.inure.dialogs.menus.AppsMenu.Companion.showAppsMenu
-import app.simple.inure.dialogs.menus.SearchMenu
+import app.simple.inure.dialogs.app.AppMenu.Companion.showAppMenu
+import app.simple.inure.dialogs.search.SearchMenu
 import app.simple.inure.extensions.fragments.KeyboardScopedFragment
 import app.simple.inure.interfaces.adapters.AdapterCallbacks
 import app.simple.inure.preferences.SearchPreferences
@@ -30,6 +30,7 @@ import app.simple.inure.ui.viewers.Providers
 import app.simple.inure.ui.viewers.Receivers
 import app.simple.inure.ui.viewers.Resources
 import app.simple.inure.ui.viewers.Services
+import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.ViewUtils.gone
 import app.simple.inure.util.ViewUtils.visible
 import app.simple.inure.viewmodels.panels.SearchViewModel
@@ -45,6 +46,8 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
 
     private lateinit var searchViewModel: SearchViewModel
     private lateinit var tagsViewModel: TagsViewModel
+
+    private var keywords = ""
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = layoutInflater.inflate(R.layout.fragment_search, container, false)
@@ -67,20 +70,25 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         // super.onViewCreated(view, savedInstanceState)
 
+        if (searchViewModel.shouldShowLoader()) {
+            showLoader(manualOverride = true)
+        }
+
         postponeEnterTransition()
 
         recyclerView.addHeightKeyboardCallbacks()
         searchView.editText.setWindowInsetsAnimationCallback()
         searchView.showInput()
+        keywords = SearchPreferences.getLastSearchKeyword()
 
         searchViewModel.getSearchData().observe(viewLifecycleOwner) {
             hideLoader()
-            if (!SearchPreferences.isDeepSearchEnabled()) {
+            if (SearchPreferences.isDeepSearchEnabled().invert()) {
                 postponeEnterTransition()
                 searchView.hideLoader()
                 searchView.setNewNumber(it.size)
 
-                appsAdapterSearchSmall = AdapterSearch(it, searchViewModel.getSearchKeywords().value ?: "")
+                appsAdapterSearchSmall = AdapterSearch(it, keywords.sanitizeKeyword())
                 recyclerView.adapter = appsAdapterSearchSmall
 
                 appsAdapterSearchSmall.setOnItemClickListener(object : AdapterCallbacks {
@@ -90,7 +98,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                     }
 
                     override fun onAppLongPressed(packageInfo: PackageInfo, icon: ImageView) {
-                        childFragmentManager.showAppsMenu(packageInfo, searchViewModel.getSearchKeywords().value ?: "").onDismissListener = {
+                        childFragmentManager.showAppMenu(packageInfo, keywords.sanitizeKeyword()).onDismissListener = {
                             postDelayed(250) {
                                 // searchView.showInput()
                             }
@@ -104,7 +112,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
             }
         }
 
-        searchViewModel.getDeepSearchData().observe(viewLifecycleOwner) {
+        searchViewModel.getSearchData().observe(viewLifecycleOwner) {
             hideLoader()
             if (SearchPreferences.isDeepSearchEnabled()) {
                 postponeEnterTransition()
@@ -112,7 +120,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                 searchView.setNewNumber(it.size)
                 searchView.hideLoader()
 
-                adapterDeepSearch = AdapterDeepSearch(it, searchViewModel.getSearchKeywords().value ?: "")
+                adapterDeepSearch = AdapterDeepSearch(it, keywords.sanitizeKeyword())
                 recyclerView.adapter = adapterDeepSearch
 
                 adapterDeepSearch.setOnItemClickListener(object : AdapterDeepSearch.Companion.AdapterDeepSearchCallbacks {
@@ -120,7 +128,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                         if (SearchPreferences.setSearchKeywordMode(true)) {
                             openFragmentSlide(
                                     Permissions.newInstance(
-                                            packageInfo, searchViewModel.getSearchKeywords().value ?: ""), "permission")
+                                            packageInfo, keywords.sanitizeKeyword()), Permissions.TAG)
                         }
                     }
 
@@ -128,7 +136,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                         if (SearchPreferences.setSearchKeywordMode(true)) {
                             openFragmentSlide(
                                     Activities.newInstance(
-                                            packageInfo, searchViewModel.getSearchKeywords().value ?: ""), "activities")
+                                            packageInfo, keywords.sanitizeKeyword()), Activities.TAG)
                         }
                     }
 
@@ -136,7 +144,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                         if (SearchPreferences.setSearchKeywordMode(true)) {
                             openFragmentSlide(
                                     Services.newInstance(
-                                            packageInfo, searchViewModel.getSearchKeywords().value ?: ""), "services")
+                                            packageInfo, keywords.sanitizeKeyword()), Services.TAG)
                         }
                     }
 
@@ -144,7 +152,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                         if (SearchPreferences.setSearchKeywordMode(true)) {
                             openFragmentSlide(
                                     Receivers.newInstance(
-                                            packageInfo, searchViewModel.getSearchKeywords().value ?: ""), "receivers")
+                                            packageInfo, keywords.sanitizeKeyword()), Receivers.TAG)
                         }
                     }
 
@@ -152,7 +160,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                         if (SearchPreferences.setSearchKeywordMode(true)) {
                             openFragmentSlide(
                                     Providers.newInstance(
-                                            packageInfo, searchViewModel.getSearchKeywords().value ?: ""), "providers")
+                                            packageInfo, keywords.sanitizeKeyword()), Providers.TAG)
                         }
                     }
 
@@ -160,7 +168,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                         if (SearchPreferences.setSearchKeywordMode(true)) {
                             openFragmentSlide(
                                     Resources.newInstance(
-                                            packageInfo, searchViewModel.getSearchKeywords().value ?: ""), "resources")
+                                            packageInfo, keywords.sanitizeKeyword()), Resources.TAG)
                         }
                     }
 
@@ -171,7 +179,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                     }
 
                     override fun onAppLongPressed(packageInfo: PackageInfo, icon: AppIconImageView) {
-                        childFragmentManager.showAppsMenu(packageInfo, searchViewModel.getSearchKeywords().value ?: "").onDismissListener = {
+                        childFragmentManager.showAppMenu(packageInfo, keywords.sanitizeKeyword()).onDismissListener = {
                             // Open keyboard after menu is dismissed
                             //                            postDelayed(250) {
                             //                                searchView.showInput()
@@ -216,10 +224,11 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
         searchView.setSearchViewEventListener(object : SearchViewEventListener {
             override fun onSearchMenuPressed(button: View) {
                 SearchMenu.newInstance()
-                    .show(childFragmentManager, "search_list_config")
+                    .show(childFragmentManager, SearchMenu.TAG)
             }
 
             override fun onSearchTextChanged(keywords: String, count: Int) {
+                this@Search.keywords = keywords
                 removeHandlerCallbacks()
                 if (keywords.isNotEmpty()) {
                     postDelayed(1000L) { // Todo : Find a better way to do this
@@ -244,18 +253,26 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
     }
 
     private fun setTagsStripState(keywords: String) {
-        if (SearchPreferences.isDeepSearchEnabled()) {
-            tags.gone(animate = false)
-        } else {
-            kotlin.runCatching {
-                (tags.adapter as? AdapterTags)?.highlightedTag = keywords.removePrefix("#")
-            }
+        kotlin.runCatching {
+            (tags.adapter as? AdapterTags)?.highlightedTag = keywords.removePrefix("#").split(" ")[0]
+        }
 
-            if (keywords.startsWith("#")) {
-                tags.visible(animate = false)
-            } else {
-                tags.gone(animate = false)
+        if (keywords.startsWith("#")) {
+            tags.visible(animate = false)
+        } else {
+            tags.gone(animate = false)
+        }
+    }
+
+    private fun String.sanitizeKeyword(): String {
+        return if (startsWith("#")) {
+            try {
+                split(" ")[1]
+            } catch (e: IndexOutOfBoundsException) {
+                ""
             }
+        } else {
+            this
         }
     }
 
@@ -270,7 +287,6 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
 
             SearchPreferences.deepSearch -> {
                 searchViewModel.initiateSearch(SearchPreferences.getLastSearchKeyword())
-                setTagsStripState(SearchPreferences.getLastSearchKeyword())
             }
 
             SearchPreferences.ignoreCasing -> {
@@ -298,5 +314,7 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
             fragment.arguments = args
             return fragment
         }
+
+        const val TAG = "Search"
     }
 }
