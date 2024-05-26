@@ -18,6 +18,7 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsAnimation
 import android.widget.ImageView
+import androidx.activity.addCallback
 import androidx.annotation.IntegerRes
 import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
@@ -106,6 +107,7 @@ abstract class ScopedFragment : Fragment(), SharedPreferences.OnSharedPreference
         }
 
         postponeEnterTransition()
+        setupBackPressedDispatcher()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -469,6 +471,35 @@ abstract class ScopedFragment : Fragment(), SharedPreferences.OnSharedPreference
     open fun openWebPage(source: String) {
         clearTransitions()
         openFragmentSlide(WebPage.newInstance(string = source), "web_page")
+    }
+
+    /**
+     * Why I am using [requireActivity.onBackPressedDispatcher] here when the activity
+     * already manages fragment backstack?
+     *
+     * The reason is, when the fragment is popped from the backstack it transitions
+     * back to the previous fragment with the same animation that was used to open
+     * the fragment. However, this leads to an issue when the fragments are popped
+     * quickly or before the transition is completed. This leads to screen getting
+     * stuck in the middle of the transition because when the transition ends it puts
+     * the closed fragment view on top of the previous fragment view. This is a workaround
+     * to pop the fragment immediately when the back button is pressed and clear the
+     * transition animation.
+     *
+     * Override it if you don't want the current panel to intercept the back press
+     * and let the activity handle it
+     */
+    open fun setupBackPressedDispatcher() {
+        if (parentFragmentManager.backStackEntryCount > 0) { // Make sure we have fragments in backstack
+            requireActivity().onBackPressedDispatcher.addCallback(this) {
+                Log.d(tag ?: TAG, "onBackPressed")
+                parentFragmentManager.popBackStackImmediate()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    requireView().clearViewTranslationCallback()
+                }
+                requireView().clearAnimation()
+            }
+        }
     }
 
     /**
