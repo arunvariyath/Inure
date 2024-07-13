@@ -113,7 +113,7 @@ class Image : ScopedFragment() {
         setBackgroundColor(animate = false)
 
         with(header) {
-            if (DevelopmentPreferences.get(DevelopmentPreferences.disableTransparentStatus)) {
+            if (DevelopmentPreferences.get(DevelopmentPreferences.DISABLE_TRANSPARENT_STATUS)) {
                 if (paddingTop >= StatusBarHeight.getStatusBarHeight(resources)) {
                     setPadding(paddingLeft,
                                abs(StatusBarHeight.getStatusBarHeight(resources) - paddingTop),
@@ -246,7 +246,7 @@ class Image : ScopedFragment() {
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
-            ImageViewerPreferences.isBackgroundDark -> {
+            ImageViewerPreferences.IS_BACKGROUND_DARK -> {
                 setBackgroundColor()
             }
         }

@@ -1,6 +1,7 @@
 package app.simple.inure.viewmodels.panels
 
 import android.app.Application
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
@@ -14,6 +15,7 @@ import app.simple.inure.R
 import app.simple.inure.apk.utils.PackageUtils
 import app.simple.inure.apk.utils.PackageUtils.getApplicationInfo
 import app.simple.inure.apk.utils.PackageUtils.isAppHidden
+import app.simple.inure.apk.utils.PackageUtils.isInstalled
 import app.simple.inure.apk.utils.PackageUtils.isPackageInstalled
 import app.simple.inure.apk.utils.PackageUtils.isSystemApp
 import app.simple.inure.apk.utils.PackageUtils.isUpdateInstalled
@@ -29,13 +31,12 @@ import app.simple.inure.util.AppUtils.isUnlocker
 import app.simple.inure.util.ArrayUtils.toArrayList
 import app.simple.inure.util.ConditionUtils.invert
 import app.simple.inure.util.FileUtils.toFile
-import app.simple.inure.util.FlagUtils
 import app.simple.inure.util.TrackerUtils
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class AppInfoViewModel(application: Application, val packageInfo: PackageInfo) : WrappedViewModel(application) {
+class AppInfoViewModel(application: Application, private var packageInfo: PackageInfo) : WrappedViewModel(application) {
 
     private val menuItems: MutableLiveData<List<Pair<Int, Int>>> by lazy {
         MutableLiveData<List<Pair<Int, Int>>>().also {
@@ -140,25 +141,37 @@ class AppInfoViewModel(application: Application, val packageInfo: PackageInfo) :
                 }, 0).let { resolveInfos ->
                     resolveInfos.forEach {
                         if (it.activityInfo.packageName == packageInfo.packageName) {
-                            list.add(Pair(R.drawable.ic_settings, R.string.preferences))
+                            if (it.activityInfo.exported) {
+                                list.add(Pair(R.drawable.ic_settings, R.string.preferences))
+                            }
                         }
                     }
                 }
             }
 
-            packageManager.queryIntentActivities(Intent().apply {
-                action = Intent.ACTION_SEARCH
-            }, 0).let { resolveInfos ->
-                for (resolveInfo in resolveInfos) {
-                    if (resolveInfo.activityInfo.packageName == packageInfo.packageName) {
-                        list.add(Pair(R.drawable.ic_search, R.string.search))
-                        break
+            if (packageInfo.isInstalled()) {
+                packageManager.queryIntentActivities(Intent().apply {
+                    action = Intent.ACTION_SEARCH
+                }, 0).let { resolveInfos ->
+                    for (resolveInfo in resolveInfos) {
+                        if (resolveInfo.activityInfo.packageName == packageInfo.packageName) {
+                            if (resolveInfo.activityInfo.exported) {
+                                list.add(Pair(R.drawable.ic_search, R.string.search))
+                            }
+                            break
+                        }
                     }
                 }
             }
 
-            packageInfo.applicationInfo.manageSpaceActivityName?.let {
-                list.add(Pair(R.drawable.ic_sd_storage, R.string.manage_space))
+            if (packageInfo.isInstalled()) {
+                packageInfo.applicationInfo.manageSpaceActivityName?.let { it ->
+                    packageManager.getActivityInfo(ComponentName(packageInfo.packageName, it), 0).let {
+                        if (it.exported) {
+                            list.add(Pair(R.drawable.ic_sd_storage, R.string.manage_space))
+                        }
+                    }
+                }
             }
 
             menuOptions.postValue(list)
@@ -261,7 +274,7 @@ class AppInfoViewModel(application: Application, val packageInfo: PackageInfo) :
                 add(Pair(R.drawable.ic_check, R.string.enable))
             }
 
-            if (DevelopmentPreferences.get(DevelopmentPreferences.enableHiddenApps)) {
+            if (DevelopmentPreferences.get(DevelopmentPreferences.ENABLE_HIDDEN_APPS)) {
                 if (packageManager.isAppHidden(packageInfo.packageName)) {
                     add(Pair(R.drawable.ic_visibility, R.string.visible))
                 } else {
@@ -305,7 +318,7 @@ class AppInfoViewModel(application: Application, val packageInfo: PackageInfo) :
                 add(Pair(R.drawable.ic_check, R.string.enable))
             }
 
-            if (DevelopmentPreferences.get(DevelopmentPreferences.enableHiddenApps)) {
+            if (DevelopmentPreferences.get(DevelopmentPreferences.ENABLE_HIDDEN_APPS)) {
                 if (packageManager.isAppHidden(packageInfo.packageName)) {
                     add(Pair(R.drawable.ic_visibility, R.string.visible))
                 } else {
@@ -444,8 +457,10 @@ class AppInfoViewModel(application: Application, val packageInfo: PackageInfo) :
         return packageInfo.packageName != application.packageName
     }
 
-    fun unsetUpdateFlag() {
-        FlagUtils.unsetFlag(packageInfo.applicationInfo.flags, ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)
+    fun reinitPackageInfo(): PackageInfo {
+        // FlagUtils.unsetFlag(packageInfo.applicationInfo.flags, ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)
+        packageInfo = packageManager.getPackageInfo(packageInfo.packageName, PackageManager.GET_META_DATA)
+        return packageInfo
     }
 
     private fun loadBatteryOptimization() {

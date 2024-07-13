@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
@@ -189,7 +188,6 @@ class BatteryOptimizationViewModel(application: Application) : RootShizukuViewMo
                         }
                     }
 
-                    Log.d("BatteryOptimizationViewModel", "loadBatteryOptimizationShizuku: ${batteryOptimizationArrayList.size}")
                     var filtered = arrayListOf<BatteryOptimizationModel>()
 
                     for (app in batteryOptimizationArrayList) {
@@ -301,8 +299,8 @@ class BatteryOptimizationViewModel(application: Application) : RootShizukuViewMo
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         super.onSharedPreferenceChanged(sharedPreferences, key)
         when (key) {
-            ConfigurationPreferences.isUsingRoot,
-            ConfigurationPreferences.isUsingShizuku -> {
+            ConfigurationPreferences.IS_USING_ROOT,
+            ConfigurationPreferences.IS_USING_SHIZUKU -> {
                 refresh()
             }
         }

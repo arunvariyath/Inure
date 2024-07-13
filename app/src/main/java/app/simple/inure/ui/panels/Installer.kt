@@ -111,7 +111,7 @@ class Installer : ScopedFragment(), InstallerCallbacks {
         installerViewModel = ViewModelProvider(this, factory)[InstallerViewModel::class.java]
 
         intentFilter.addAction(ServiceConstants.actionSessionStatus)
-        viewPager.offscreenPageLimit = if (DevelopmentPreferences.get(DevelopmentPreferences.loadAllInstallerPages)) {
+        viewPager.offscreenPageLimit = if (DevelopmentPreferences.get(DevelopmentPreferences.LOAD_ALL_INSTALLER_PAGES)) {
             5
         } else {
             ViewPager2.OFFSCREEN_PAGE_LIMIT_DEFAULT
@@ -285,27 +285,27 @@ class Installer : ScopedFragment(), InstallerCallbacks {
 
                 val titles = arrayListOf<String>()
 
-                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.isInfoVisible)) {
+                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.IS_INFO_VISIBLE)) {
                     titles.add(getString(R.string.information))
                 }
 
-                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.isChangesVisible)) {
+                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.IS_CHANGES_VISIBLE)) {
                     titles.add(getString(R.string.changes))
                 }
 
-                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.isPermissionsVisible)) {
+                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.IS_PERMISSIONS_VISIBLE)) {
                     titles.add(getString(R.string.permissions))
                 }
 
-                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.isManifestVisible)) {
+                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.IS_MANIFEST_VISIBLE)) {
                     titles.add(getString(R.string.manifest))
                 }
 
-                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.isCertificateVisible)) {
+                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.IS_CERTIFICATE_VISIBLE)) {
                     titles.add(getString(R.string.certificate))
                 }
 
-                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.isTrackersVisible)) {
+                if (InstallerPreferences.getPanelVisibility(InstallerPreferences.IS_TRACKERS_VISIBLE)) {
                     titles.add(getString(R.string.trackers))
                 }
 

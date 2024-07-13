@@ -278,7 +278,7 @@ class AppInfo : ScopedFragment() {
                 override fun onAppInfoMenuClicked(source: Int, icon: ImageView) {
                     when (source) {
                         R.string.manifest -> {
-                            if (DevelopmentPreferences.get(DevelopmentPreferences.isWebViewXmlViewer)) {
+                            if (DevelopmentPreferences.get(DevelopmentPreferences.IS_WEBVIEW_XML_VIEWER)) {
                                 openFragmentArc(XMLWebView.newInstance(
                                         packageInfo, "AndroidManifest.xml"), icon, XMLWebView.TAG)
                             } else {
@@ -395,7 +395,7 @@ class AppInfo : ScopedFragment() {
                             childFragmentManager.newSureInstance().setOnSureCallbackListener(object : SureCallbacks {
                                 override fun onSure() {
                                     childFragmentManager.uninstallPackage(packageInfo) {
-                                        requireActivity().supportFragmentManager.popBackStackImmediate()
+                                        popBackStack()
                                     }
                                 }
                             })
@@ -405,7 +405,7 @@ class AppInfo : ScopedFragment() {
                             childFragmentManager.newSureInstance().setOnSureCallbackListener(object : SureCallbacks {
                                 override fun onSure() {
                                     childFragmentManager.showUpdatesUninstaller(packageInfo) {
-                                        appInfoViewModel.unsetUpdateFlag()
+                                        packageInfo = appInfoViewModel.reinitPackageInfo()
                                         appInfoViewModel.loadActionOptions()
                                     }
                                 }
@@ -653,7 +653,7 @@ class AppInfo : ScopedFragment() {
         }
 
         usageStatistics.setOnClickListener {
-            if (DevelopmentPreferences.get(DevelopmentPreferences.useOldStyleUsageStatsPanel)) {
+            if (DevelopmentPreferences.get(DevelopmentPreferences.USE_OLD_STYLE_USAGE_STATS_PANEL)) {
                 openFragmentSlide(UsageStatistics.newInstance(packageInfo), UsageStatistics.TAG)
             } else {
                 openFragmentSlide(UsageStatisticsGraph.newInstance(packageInfo), UsageStatisticsGraph.TAG)
@@ -748,22 +748,22 @@ class AppInfo : ScopedFragment() {
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
-            AppInformationPreferences.metaMenuState -> {
+            AppInformationPreferences.META_MENU_STATE -> {
                 metaMenuState()
                 appInfoViewModel.loadMetaOptions()
             }
 
-            AppInformationPreferences.actionMenuState -> {
+            AppInformationPreferences.ACTION_MENU_STATE -> {
                 actionMenuState()
                 appInfoViewModel.loadActionOptions()
             }
 
-            AppInformationPreferences.miscMenuState -> {
+            AppInformationPreferences.MISC_MENU_STATE -> {
                 miscMenuState()
                 appInfoViewModel.loadMiscellaneousItems()
             }
 
-            AppInformationPreferences.menuLayout -> {
+            AppInformationPreferences.MENU_LAYOUT -> {
                 /**
                  * Load all the menus back again
                  */
@@ -772,15 +772,15 @@ class AppInfo : ScopedFragment() {
                 appInfoViewModel.loadActionOptions()
             }
 
-            AppInformationPreferences.metaMenuLayout -> {
+            AppInformationPreferences.META_MENU_LAYOUT -> {
                 appInfoViewModel.loadMetaOptions()
             }
 
-            AppInformationPreferences.actionMenuLayout -> {
+            AppInformationPreferences.ACTION_MENU_LAYOUT -> {
                 appInfoViewModel.loadActionOptions()
             }
 
-            AppInformationPreferences.miscMenuLayout -> {
+            AppInformationPreferences.MISC_MENU_LAYOUT -> {
                 appInfoViewModel.loadMiscellaneousItems()
             }
         }

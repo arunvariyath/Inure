@@ -64,7 +64,7 @@ class Graphics : SearchBarScopedFragment() {
                     }
 
                     override fun onGraphicsLongPressed(graphic: Graphic) {
-                        if (DevelopmentPreferences.get(DevelopmentPreferences.isWebViewXmlViewer)) {
+                        if (DevelopmentPreferences.get(DevelopmentPreferences.IS_WEBVIEW_XML_VIEWER)) {
                             openFragmentSlide(XMLWebView.newInstance(packageInfo, graphic.path), XMLWebView.TAG)
                         } else {
                             openFragmentSlide(XML.newInstance(packageInfo, false, graphic.path), XML.TAG)
@@ -105,7 +105,7 @@ class Graphics : SearchBarScopedFragment() {
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         when (key) {
-            GraphicsPreferences.graphicsSearch -> {
+            GraphicsPreferences.GRAPHICS_SEARCH -> {
                 searchBoxState(animate = true, GraphicsPreferences.isSearchVisible())
             }
         }
