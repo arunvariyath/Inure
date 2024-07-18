@@ -121,14 +121,14 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
 
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 
             dependenciesInfo {
-                includeInApk true
-                includeInBundle true
+                includeInApk false
+                includeInBundle false
             }
         }
         debug {
