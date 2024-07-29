@@ -24,6 +24,7 @@ import app.simple.inure.dialogs.search.SearchKeywordDatabase
 import app.simple.inure.dialogs.search.SearchKeywordDatabase.Companion.showSearchKeywordDatabase
 import app.simple.inure.dialogs.search.SearchMenu
 import app.simple.inure.dialogs.search.SearchMenu.Companion.showSearchMenu
+import app.simple.inure.dialogs.search.SearchSort.Companion.showSearchSort
 import app.simple.inure.extensions.fragments.KeyboardScopedFragment
 import app.simple.inure.interfaces.adapters.AdapterCallbacks
 import app.simple.inure.preferences.SearchPreferences
@@ -269,6 +270,10 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
                 setTagsStripState("")
                 searchViewModel.clearSearch()
             }
+
+            override fun onFilterPressed(button: View?) {
+                childFragmentManager.showSearchSort()
+            }
         })
     }
 
@@ -307,9 +312,14 @@ class Search : KeyboardScopedFragment(), SharedPreferences.OnSharedPreferenceCha
             SearchPreferences.SORT_STYLE,
             SearchPreferences.IS_SORTING_REVERSED,
             SearchPreferences.APPS_CATEGORY,
-            SearchPreferences.APPS_FILTER,
-            SearchPreferences.DEEP_SEARCH -> {
+            SearchPreferences.APPS_FILTER -> {
                 searchViewModel.reload()
+            }
+
+            SearchPreferences.DEEP_SEARCH -> {
+                postDelayed(500) {
+                    searchViewModel.reload()
+                }
             }
 
             SearchPreferences.IGNORE_CASING -> {
